@@ -7,10 +7,11 @@ var constants = new Constants();
 var tilesets = {'pallet_town' : pallet_town, 'hero_home_1f' : hero_home_1f, 'route_1' : route_1};
 
 export class Maps {
-    constructor(phaser) {
-        this.map = pallet_town;
+    constructor(phaser, socket) {
+        this.map = route_1;
         this.phaser = phaser;
         this.loadTrainer();
+        this.socket = socket;
     }
 
     changeMap(map) {
@@ -63,7 +64,7 @@ export class Maps {
         // check predefined collision box
         if (typeof this.map['collisions'][this.map['hero'][0] + x] !== 'undefined'
             &&
-            typeof this.map['collisions'][this.map['hero'][0] + x][this.map['hero'][1] + y] !== 'undefined')
+            typeof this.map['collisions'][this.map['hero'][0] + x].includes(this.map['hero'][1] + y))
             return false;
         // this is now false, want to think about tileset size
         // if (this.map['hero'][0] + x >= constants.screenTileWidth || this.map['hero'][0] + x < 0)
@@ -89,6 +90,24 @@ export class Maps {
         return false;
     }
 
+    wildEncounterCheck() {
+        var x = this.map['hero'][0];
+        var y = this.map['hero'][1];
+        console.log(this.prng());
+        if (typeof this.map['tallGrass'][x] !== 'undefined'
+            &&
+            typeof this.map['tallGrass'][x].includes(y)
+            &&
+            typeof this.prng !== 'undefined'
+            &&
+            this.prng() <= constants.wildEncounterChance)
+        {
+            // mint wild encounter
+            this.socket.emit('wildEncounter', '');
+            console.log('wild encounter!');
+        }
+    }
+
     moveTrainer(x, y) {
         if (!this.portalCheckAndHandle(x, y)) {
             if (this.movementWithinBounds(x, y)) {
@@ -98,6 +117,7 @@ export class Maps {
                 this.paintTiles();
             }
         }
+        this.wildEncounterCheck();
         console.log(this.map['hero'][0].toString() + ' ' + this.map['hero'][1].toString());
     }
 }

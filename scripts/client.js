@@ -1,5 +1,3 @@
-// NOTE: pretty sure this is now deprecated and useless
-
 import { Player } from './player.js';
 import { Maps } from './maps.js';
 import { Timer } from './timer.js';
@@ -13,12 +11,12 @@ var config = {
     width: constants.tsz * constants.screenTileWidth + 1,
     height: constants.tsz * constants.screenTileHeight,
     scene: [
-        Battle,
-        // {
-        // preload: preload,
-        // create: create,
-        // update: update
-        // }
+        {
+            preload: preload,
+            create: create,
+            update: update
+        },
+        Battle
     ]
 };
 
@@ -28,9 +26,35 @@ var timer;
 
 function preload ()
 {
-    maps = new Maps(this);
+    this.socket = io('http://localhost:3000');
+    this.socket.on('connect', () => {
+        console.log('connected to server! id:', this.socket.id);
+    });
+
+    maps = new Maps(this, this.socket);
     timer = new Timer(this);
     maps.loadTiles();
+
+    this.socket.on('greeting', greeting => {
+        console.log("this was greeting:", greeting);
+    });
+
+    this.socket.on('random', seed => {
+        console.log("seed from dumbRandom", seed);
+        maps.prng = new Math.seedrandom(seed);
+    });
+
+    this.socket.on('wildEncounter', () => {
+        console.log("transitioning to battle with wild mon");
+        this.socket.emit('battleUI');
+        this.scene.transition({
+            target: 'Battle',
+            duration: 1000,
+            data: this.socket});
+    });
+
+    // ask for random number immediately
+    this.socket.emit('random', '');
 }
 
 function create ()
@@ -57,4 +81,5 @@ function update ()
     if (keyD.isDown && timer.timer('movement')) {
         maps.moveTrainer(2, 0);
     }
+
 }

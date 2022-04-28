@@ -5,5 +5,6 @@ export class Constants {
         this.screenTileHeight = 5 * 4;
         this.screenCenter = [16, 10];
         this.tsz = 8;
+        this.wildEncounterChance = 1.0;  // for debugging easily
     }
 }
