@@ -48,16 +48,22 @@ contract MonManager is Ownable {
     {
         string[4] memory movesetNames;
         uint[4] memory movesetTypes;
+        uint[4] memory maxPParr;
         string memory name;
         uint moveType;
+        uint maxPP;
         for (uint i = 0; i < 4; ++i)
             {
-                (name,moveType,,,,,) = _moves.idToMove(_monNFT.idToMoveset(id, i));
+                (name,moveType,,,,maxPP,) = _moves.idToMove(_monNFT.idToMoveset(id, i));
                 movesetNames[i] = name;
                 movesetTypes[i] = moveType;
+                maxPParr[i] = maxPP;
             }
+        uint maxHP;
+        (maxHP,,,,,) = _monNFT.idToStats(id);
         return MonLib.BattleMon(_monNFT.idToSpecies(id),
                                 _monNFT.idToHP(id),
+                                maxHP,
                                 _monNFT.idToLevel(id),
                                 _monNFT.idToGender(id),
                                 movesetNames,
@@ -65,7 +71,9 @@ contract MonManager is Ownable {
                                 [_monNFT.idToPP(id, 0),
                                  _monNFT.idToPP(id, 1),
                                  _monNFT.idToPP(id, 2),
-                                 _monNFT.idToPP(id, 3)]);
+                                 _monNFT.idToPP(id, 3)],
+                                maxPParr
+                                );
     }
 
     function getParty(address addr)

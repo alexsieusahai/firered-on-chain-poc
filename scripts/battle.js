@@ -14,11 +14,13 @@ function makeMonObject(monArray) {
     return {
         "speciesId": convert(monArray[0]),
         "currentHP": convert(monArray[1]),
-        "level": convert(monArray[2]),
-        "gender": convert(monArray[3]),
-        "moveset": monArray[4].map(x => x === '' ? '-' : x),
-        "movesetTypes": monArray[5].map(convert),
-        "currentPP": monArray[6].map(convert)
+        "maxHP": convert(monArray[2]),
+        "level": convert(monArray[3]),
+        "gender": convert(monArray[4]),
+        "moveset": monArray[5].map(x => x === '' ? '-' : x),
+        "movesetTypes": monArray[6].map(convert),
+        "currentPP": monArray[7].map(convert),
+        "maxPP": monArray[8].map(convert),
     };
 }
 
@@ -47,10 +49,10 @@ function movesetTextbox(scene, mon) {
 
 function currentMoveTextbox(scene, mon, currentMove) {
     var currentPP = mon['currentPP'][currentMove];
+    var maxPP = mon['maxPP'][currentMove];
     var typeInt = mon['movesetTypes'][currentMove];
     var content = "PP " + String(currentPP);
-    console.warn("NOTIMPLEMENTEDWARNING: need to get max pp from server as well");
-    content += '/' + '35' + '\nTYPE:' + getTypeString(typeInt);
+    content += '/' + + String(maxPP) + '\nTYPE:' + getTypeString(typeInt);
     createTextBox(scene, 150, 155, {
         wrapWidth: 60,
         fixedWidth: 60
@@ -58,10 +60,23 @@ function currentMoveTextbox(scene, mon, currentMove) {
         .start(content, 0);
 }
 
-const MON_NAME_LENGTH = 10;
+const MON_NAME_LENGTH = 12;
 function playerMonTextbox(scene, mon) {
-    var content = "BULBASAUR   Lv5\nHP 11/20";
+    var content = padString(mon['name'], MON_NAME_LENGTH);
+    content += "Lv" + String(mon['level']) + '\n';
+    content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
     createTextBox(scene, 120, 120, {
+        wrapWidth: 90,
+        fixedWidth: 90
+    })
+        .start(content, 0);
+}
+
+function enemyMonTextbox(scene, mon) {
+    var content = padString(mon['name'], MON_NAME_LENGTH);
+    content += "Lv" + String(mon['level']) + '\n';
+    content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
+    createTextBox(scene, 15, 50, {
         wrapWidth: 90,
         fixedWidth: 90
     })
@@ -82,7 +97,6 @@ export class Battle extends Phaser.Scene {
             sceneKey: 'rexUI'
         });
         // load the mons in both parties
-
         this.load.image('mon_1_back', 'assets/pokemon/main-sprites/firered-leafgreen/back/1.png');
         this.load.image('mon_16_front', 'assets/pokemon/main-sprites/firered-leafgreen/16.png');
     }
@@ -94,31 +108,22 @@ export class Battle extends Phaser.Scene {
         socket.on('battleUI', (data) => {
             console.log('got battle UI data!');
             // setup all of the textboxes
-            var myParty = data["party"].map(makeMonObject);
-            var enemyParty = data["partyAI"].map(makeMonObject);
-            console.log("myParty", myParty);
-            // console.log("myParty[0]", myParty[0]);
+            var myParty = data["party"]["mons"].map(makeMonObject);
+            var monNamesParty = data["party"]["names"];
+            for (var i = 0; i < myParty.length; ++i) {
+                myParty[i]['name'] = monNamesParty[i];
+            }
+            var enemyParty = data["partyAI"]["mons"].map(makeMonObject);
+            var enemyNamesParty = data["partyAI"]["names"];;
+            for (var i = 0; i < enemyParty.length; ++i) {
+                enemyParty[i]['name'] = enemyNamesParty[i];
+            }
+            console.log("myParty[0]", myParty[0]);
             movesetTextbox(this, myParty[0]);
             currentMoveTextbox(this, myParty[0], this.currentMove);
+            playerMonTextbox(this, myParty[0]);
+            enemyMonTextbox(this, enemyParty[0]);
         });
-
-        var content;
-
-        // my mon textbox
-        content = "BULBASAUR   Lv5\nHP 11/20";
-        createTextBox(this, 120, 120, {
-            wrapWidth: 90,
-            fixedWidth: 90
-        })
-            .start(content, 0);
-
-        // enemy mon textbox
-        content = "PIDGEY     Lv5\nHP 11/20";
-        createTextBox(this, 15, 50, {
-            wrapWidth: 90,
-            fixedWidth: 90
-        })
-            .start(content, 0);
 
         this.add.image(70, 110, 'mon_1_back');
         this.add.image(160, 50, 'mon_16_front');

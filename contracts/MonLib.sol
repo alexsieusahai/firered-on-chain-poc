@@ -14,11 +14,13 @@ library MonLib {
     struct BattleMon {
         uint speciesId;
         uint currentHP;
+        uint maxHP;
         uint level;
         uint gender;
         string[4] moveset;
         uint[4] movesetTypes;
         uint[4] currentPP;
+        uint[4] maxPP;
     }
 
 }

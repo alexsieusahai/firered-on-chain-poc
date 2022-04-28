@@ -1,5 +1,7 @@
 const { ethers } = require("hardhat");
 const fs = require('fs');
+const path = require('path');
+const speciesIdToName = require(__dirname + '/../data/dex.json');
 
 // use the test provider
 var hhProvider = new ethers.providers.WebSocketProvider("http://127.0.0.1:8545");
@@ -48,13 +50,15 @@ class Chain {
     async getParty() {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         const [deployer] = await ethers.getSigners();
-        return await this.contracts["MonManager"].getParty(deployer.address);
+        var party = await this.contracts["MonManager"].getParty(deployer.address);
+        return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }
 
     async getPartyAI() {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         const [deployer] = await ethers.getSigners();
-        return await this.contracts["MonManager"].getPartyAI(deployer.address);
+        var party = await this.contracts["MonManager"].getPartyAI(deployer.address);
+        return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }
 }
 

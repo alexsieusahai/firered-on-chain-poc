@@ -3,6 +3,7 @@ const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const path = require('path');
+const fs = require('fs');
 
 // local imports
 const { Chain } = require("./chain");
@@ -27,6 +28,8 @@ const config = {
 
 function preload() {
     console.log("preload");
+    var speciesIdToName = JSON.parse(fs.readFileSync(__dirname + "/../data/dex.json"));
+
     io.on('connection', (socket) => {
         console.log('user connected');
         console.log(socket.id);
@@ -51,6 +54,7 @@ function preload() {
             console.log("getting data for battle UI...");
             chain.getParty().then( party => {
                 chain.getPartyAI().then( partyAI => {
+                    // console.log("party", party);
                     console.log("sending data for battle UI to client...");
                     socket.emit('battleUI', {"party": party, "partyAI": partyAI});
                 });

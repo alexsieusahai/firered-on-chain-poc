@@ -55,6 +55,8 @@ function preload ()
 
     // ask for random number immediately
     this.socket.emit('random', '');
+    console.warn("DEBUG immediately sending wildEncounter");
+    this.socket.emit('wildEncounter', '');
 }
 
 function create ()
