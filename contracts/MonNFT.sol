@@ -69,6 +69,7 @@ contract MonNFT is ERC721URIStorage, Ownable {
     function incrementExp(uint id, uint amount)
         public onlyBattle
     {
+        console.log(id, "is getting exp", amount);
         idToExp[id] = idToExp[id] + amount;
         while (canLevel(id)) {
             handleLevelUp(id);

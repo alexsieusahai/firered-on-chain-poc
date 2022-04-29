@@ -56,6 +56,14 @@ class Deploy {
         await this.monBaseStats.setStats(16, 4000, 4500, 4000, 3500, 3500, 5600);
     }
 
+    async setMonTypes() {
+        // bulbasaur mock
+        await this.monTypes.addSpecies(1, [3]);
+        // pidgey mock
+        await this.monTypes.addSpecies(16, [0, 9]);
+        console.log("setup mon type mocks!");
+    }
+
     async setMoves() {
         await this.moves.addInfo("Tackle", 0, true, 40, 100, 35, true);
     }
@@ -147,6 +155,7 @@ class Deploy {
 
         await this.deployContracts();
         await this.setBaseStats();
+        await this.setMonTypes();
         await this.setMoves();
         await this.setTypeChart();
         await this.setupUser();

@@ -84,13 +84,14 @@ contract Battle {
             handleTurnAI();
         }
 
-
         if (finishBattleCheck()) {
             finishBattle();
         }
     }
 
-    function finishBattleCheck() private returns (bool) {
+    function finishBattleCheck()
+        private view
+        returns (bool) {
         bool allFainted = true;
         // player party check
         for (uint i = 0; i < Constants.PARTY_SIZE; ++i) {
@@ -101,6 +102,7 @@ contract Battle {
         if (allFainted) {
             return true;
         }
+        allFainted = true;
         // ai party check
         for (uint i = 0; i < Constants.PARTY_SIZE; ++i) {
             if (_monNFT.idToHP(_monManager.addressToPartyAI(msg.sender, i)) > 0) {
@@ -160,7 +162,6 @@ contract Battle {
         (,moveType,isPhysical,power,accuracy,,) = _moves.idToMove(_monNFT.idToMoveset(attackerId, moveSlot));
         console.log("NOTIMPLEMENTEDWARNING: need to check and handle PP for attacks");
 
-
         uint damage = 2 * _monNFT.idToLevel(attackerId) * 100 / 5 + 200; // extra multiplier of 100 (absorbed by hp being 100x the normal amount)
         damage = damage * power * damageAttackDefRatio(attackerId, defenderId, isPhysical); // extra multiplier of 100
         damage /= 50;
@@ -180,7 +181,6 @@ contract Battle {
         if (_monNFT.idToHP(defenderId) == 0) {
             handleMonFaintExpEV(attackerId, defenderId);
         }
-        console.log("hp remaining", _monNFT.idToHP(defenderId));
     }
 
     function playerDoAction() private {
@@ -256,5 +256,12 @@ contract Battle {
         } else {
             require(false, "NotImplemented");
         }
+    }
+
+    function inBattle(address addr)
+        public view
+        returns (bool)
+    {
+        return opponent[addr] != address(0);
     }
 }

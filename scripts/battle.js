@@ -1,5 +1,6 @@
 // generic battle scene
 import { Constants } from './constants.js';
+import { Timer } from './timer.js';
 
 // https://rexrainbow.github.io/phaser3-rex-notes/docs/site/ui-textbox/
 // https://codepen.io/rexrainbow/pen/ExZLoWL?editors=0010
@@ -29,30 +30,44 @@ function padString(string, amount, padchar=' ') {
 }
 
 const MOVE_STRING_LENGTH = 10;
-function movesetTextbox(scene, mon) {
+function movesetTextbox(scene, mon, moveSelection) {
     var content = '';
-    // console.log("mon moveset", mon["moveset"]);
-    for (var i in mon["moveset"]) {
-        // should get move names from the smart contract, when doing the getParty() call
+    var moveset;
+    switch (scene.menuState) {
+    case "FIGHT":
+        moveset = mon["moveset"];
+        break;
+    case "ACTION":
+        moveset = ["FIGHT", "BAG", "MONS", "FLEE"];
+        break;
+    default:
+        moveset = ['?', '?', '?', '?'];
+        break;
+    }
+    for (var i in moveset) {
         if (i == 2) {
             content += '\n';
         }
-        content += padString(mon["moveset"][i], MOVE_STRING_LENGTH);
+        var prefix = (i == moveSelection) ? '*' : ' ';
+        content += padString(prefix + moveset[i], MOVE_STRING_LENGTH);
         i++;
-        createTextBox(scene, 5, 155, {
-            wrapWidth: 130,
-            fixedWidth: 130,
-        })
-            .start(content, 0);
     }
+    createTextBox(scene, 5, 155, {
+        wrapWidth: 130,
+        fixedWidth: 130,
+    })
+        .start(content, 0);
 }
 
 function currentMoveTextbox(scene, mon, currentMove) {
     var currentPP = mon['currentPP'][currentMove];
     var maxPP = mon['maxPP'][currentMove];
     var typeInt = mon['movesetTypes'][currentMove];
-    var content = "PP " + String(currentPP);
-    content += '/' + + String(maxPP) + '\nTYPE:' + getTypeString(typeInt);
+    var content = '\n';
+    if (scene.menuState === "FIGHT") {
+        content = "PP " + String(currentPP);
+        content += '/' + + String(maxPP) + '\nTYPE:' + getTypeString(typeInt);
+    }
     createTextBox(scene, 150, 155, {
         wrapWidth: 60,
         fixedWidth: 60
@@ -73,7 +88,8 @@ function playerMonTextbox(scene, mon) {
 }
 
 function enemyMonTextbox(scene, mon) {
-    var content = padString(mon['name'], MON_NAME_LENGTH);
+    var content = '';
+    content = padString(mon['name'], MON_NAME_LENGTH);
     content += "Lv" + String(mon['level']) + '\n';
     content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
     createTextBox(scene, 15, 50, {
@@ -83,6 +99,7 @@ function enemyMonTextbox(scene, mon) {
         .start(content, 0);
 }
 
+var timer;
 // make and export a scene off of these
 export class Battle extends Phaser.Scene {
 
@@ -91,6 +108,8 @@ export class Battle extends Phaser.Scene {
     }
 
     preload() {
+        timer = new Timer(this);
+
         this.load.scenePlugin({
             key: 'rexuiplugin',
             url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js',
@@ -102,35 +121,107 @@ export class Battle extends Phaser.Scene {
     }
 
     create(socket) {
-        this.currentMove = 0;
+        this.socket = socket;
+        this.menuSelection = 0;
+        this.menuState = "ACTION";
 
         // grab the data from the backend
-        socket.on('battleUI', (data) => {
+        this.socket.on('battleUI', (data) => {
             console.log('got battle UI data!');
             // setup all of the textboxes
-            var myParty = data["party"]["mons"].map(makeMonObject);
+            this.myParty = data["party"]["mons"].map(makeMonObject);
             var monNamesParty = data["party"]["names"];
-            for (var i = 0; i < myParty.length; ++i) {
-                myParty[i]['name'] = monNamesParty[i];
+            for (var i = 0; i < this.myParty.length; ++i) {
+                this.myParty[i]['name'] = monNamesParty[i];
             }
-            var enemyParty = data["partyAI"]["mons"].map(makeMonObject);
+            this.enemyParty = data["partyAI"]["mons"].map(makeMonObject);
             var enemyNamesParty = data["partyAI"]["names"];;
-            for (var i = 0; i < enemyParty.length; ++i) {
-                enemyParty[i]['name'] = enemyNamesParty[i];
+            for (var i = 0; i < this.enemyParty.length; ++i) {
+                this.enemyParty[i]['name'] = enemyNamesParty[i];
             }
-            console.log("myParty[0]", myParty[0]);
-            movesetTextbox(this, myParty[0]);
-            currentMoveTextbox(this, myParty[0], this.currentMove);
-            playerMonTextbox(this, myParty[0]);
-            enemyMonTextbox(this, enemyParty[0]);
+            // console.log("myParty[0]", myParty[0]);
+            movesetTextbox(this, this.myParty[0], this.menuSelection);
+            currentMoveTextbox(this, this.myParty[0], this.menuSelection);
+            playerMonTextbox(this, this.myParty[0]);
+            enemyMonTextbox(this, this.enemyParty[0]);
+        });
+
+        // after action has completed, ask for new UI data and subsequently redraw upon ingestion
+        this.socket.on('battleIngestActionCompleted', () => {
+            socket.emit('battleUI');
         });
 
         this.add.image(70, 110, 'mon_1_back');
         this.add.image(160, 50, 'mon_16_front');
     }
 
+    redrawMoveTextboxes() {
+        movesetTextbox(this, this.myParty[0], this.menuSelection);
+        currentMoveTextbox(this, this.myParty[0], this.menuSelection);
+    }
+
     update() {
-        // on enter, send command
+        // movement for menu selection
+        // menu flow and redrawing UI when necessary
+        // select action
+        let keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+        let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        let keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        let keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
+        var menuDelta = 0;
+        if (keyS.isDown && timer.timer('movement')) {
+            menuDelta = 2;
+        }
+        if (keyW.isDown && timer.timer('movement')) {
+            menuDelta = -2;
+        }
+        if (keyA.isDown && timer.timer('movement')) {
+            menuDelta = -1;
+        }
+        if (keyD.isDown && timer.timer('movement')) {
+            menuDelta = 1;
+        }
+        if (menuDelta !== 0) {
+            this.menuSelection = (this.menuSelection + menuDelta) % 4;
+            if (this.menuSelection < 0) {
+                this.menuSelection += 4;
+            }
+            this.redrawMoveTextboxes();
+        }
+
+        // handle state transitions and sending actions to backend
+        if (keyEnter.isDown && timer.timer('movement')) {
+            if (this.menuState === "ACTION") {
+                switch (this.menuSelection) {
+                case 0:
+                    this.menuState = "FIGHT";
+                    break;
+                case 1:
+                    // this.menuState = "BAG";
+                    console.warn("BAG NOT IMPLEMENTED IN UI");
+                    break;
+                case 2:
+                    // this.menuState = "MONS";
+                    console.warn("MONS NOT IMPLEMENTED IN UI");
+                    break;
+                case 3:
+                    // flee
+                    console.warn("FLEE NOT IMPLEMENTED IN UI");
+                    break;
+                default:
+                    console.warn("menuState is in an invalid state");
+                    break;
+                }
+            }
+            else if (this.menuState === "FIGHT") {
+                this.socket.emit('battleIngestAction', {'action' : 1, 'slot' : this.menuSelection});
+            } else {
+                console.warn("menuState", this.menuState, "NOT IMPLEMENTED IN UI");
+            }
+            this.redrawMoveTextboxes();
+        }
     }
 }
 

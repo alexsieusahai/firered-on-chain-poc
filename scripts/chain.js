@@ -60,6 +60,12 @@ class Chain {
         var party = await this.contracts["MonManager"].getPartyAI(deployer.address);
         return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }
+
+    async battleIngestAction(action, slot) {
+        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
+        const [deployer] = await ethers.getSigners();
+        await this.contracts["Battle"].ingestAction(action, slot);
+    }
 }
 
 module.exports = { Chain };

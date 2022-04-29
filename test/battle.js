@@ -56,6 +56,7 @@ describe("Battle", function () {
         await battle.connect(user0).ingestAction(1, 0);
         expect((await monNFT.idToExp(1)).toNumber()).to.be.gt(expBefore.toNumber());
         expect((await monNFT.idToEV(1)).speed.toNumber()).to.be.gt(EVBefore.speed.toNumber());
+        expect(await battle.inBattle(user0.address)).to.equal(false);
     });
 
     it("swap mon example", async function () {

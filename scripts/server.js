@@ -60,6 +60,13 @@ function preload() {
                 });
             });
         });
+
+        socket.on('battleIngestAction', (data) => {
+            console.log('ingesting action with', data);
+            chain.battleIngestAction(data['action'], data['slot']).then( () => {
+                socket.emit('battleIngestActionCompleted');
+            });
+        });
     });
 }
 function create() {}
