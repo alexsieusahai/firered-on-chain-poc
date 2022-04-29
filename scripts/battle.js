@@ -131,10 +131,13 @@ export class Battle extends Phaser.Scene {
             if (!data['inBattle']) {
                 // if battle done, transition back to overworld
                 console.log("jump back to overworld");
-                this.scene.transition({
-                    target: 'Overworld',
-                    duration: 1000,
-                });
+                // this.scene.transition({
+                //     target: 'Overworld',
+                //     duration: 1000,
+                // });
+                // this.scene.start('Overworld');
+                this.scene.stop('Battle');
+                this.scene.wake('Overworld');
             }
 
             // setup all of the textboxes
