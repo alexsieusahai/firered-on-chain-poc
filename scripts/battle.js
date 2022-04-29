@@ -100,7 +100,6 @@ function enemyMonTextbox(scene, mon) {
 }
 
 var timer;
-// make and export a scene off of these
 export class Battle extends Phaser.Scene {
 
     constructor() {
@@ -128,6 +127,16 @@ export class Battle extends Phaser.Scene {
         // grab the data from the backend
         this.socket.on('battleUI', (data) => {
             console.log('got battle UI data!');
+
+            if (!data['inBattle']) {
+                // if battle done, transition back to overworld
+                console.log("jump back to overworld");
+                this.scene.transition({
+                    target: 'Overworld',
+                    duration: 1000,
+                });
+            }
+
             // setup all of the textboxes
             this.myParty = data["party"]["mons"].map(makeMonObject);
             var monNamesParty = data["party"]["names"];
@@ -169,6 +178,7 @@ export class Battle extends Phaser.Scene {
         let keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         let keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        let keyEscape = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESCAPE);
 
         var menuDelta = 0;
         if (keyS.isDown && timer.timer('movement')) {
@@ -207,8 +217,7 @@ export class Battle extends Phaser.Scene {
                     console.warn("MONS NOT IMPLEMENTED IN UI");
                     break;
                 case 3:
-                    // flee
-                    console.warn("FLEE NOT IMPLEMENTED IN UI");
+                    this.socket.emit('battleIngestAction', {'action' : 4, 'slot' : this.menuSelection});
                     break;
                 default:
                     console.warn("menuState is in an invalid state");
@@ -220,6 +229,12 @@ export class Battle extends Phaser.Scene {
             } else {
                 console.warn("menuState", this.menuState, "NOT IMPLEMENTED IN UI");
             }
+            this.redrawMoveTextboxes();
+        }
+
+        // handle "back to main" state transition
+        if (keyEscape.isDown && timer.timer('movement')) {
+            this.menuState = "ACTION";
             this.redrawMoveTextboxes();
         }
     }

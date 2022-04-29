@@ -66,6 +66,12 @@ class Chain {
         const [deployer] = await ethers.getSigners();
         await this.contracts["Battle"].ingestAction(action, slot);
     }
+
+    async inBattle() {
+        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
+        const [deployer] = await ethers.getSigners();
+        return await this.contracts["Battle"].inBattle(deployer.address);
+    }
 }
 
 module.exports = { Chain };

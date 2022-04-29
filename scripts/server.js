@@ -54,9 +54,10 @@ function preload() {
             console.log("getting data for battle UI...");
             chain.getParty().then( party => {
                 chain.getPartyAI().then( partyAI => {
-                    // console.log("party", party);
-                    console.log("sending data for battle UI to client...");
-                    socket.emit('battleUI', {"party": party, "partyAI": partyAI});
+                    chain.inBattle().then( inBattle => {
+                        console.log("sending data for battle UI to client...");
+                        socket.emit('battleUI', {"party": party, "partyAI": partyAI, "inBattle": inBattle});
+                    });
                 });
             });
         });

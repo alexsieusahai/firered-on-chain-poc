@@ -6,7 +6,7 @@ typechain
 package-lock.json
 
 #MACOS
-.DS_Store
+**/.DS_Store
 
 #Hardhat files
 cache

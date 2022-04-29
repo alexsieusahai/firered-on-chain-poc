@@ -197,7 +197,16 @@ contract Battle {
                              aiMonId);
                 } else if (playerAction[msg.sender] == PARTY_ACTION) {
                     _monManager.swapPartyMember(msg.sender, 0, playerSlot[msg.sender]);
-                } else {
+                } else if (playerAction[msg.sender] == RUN_ACTION) {
+                    if (opponent[msg.sender] == address(this) && aiStrategy[msg.sender] != 1) {
+                        console.log("NOTIMPLEMENTED: trainer flees not allowed, tell the frontend somehow...");
+                    } else {
+                        console.log("fleeing...");
+                        console.log("NOTIMPLEMENTED: fleeing as forfeit for player-player battles not implemented");
+                        finishBattle();
+                    }
+                }
+                else {
                     require(false, "NotImplemented");
                 }
             }
