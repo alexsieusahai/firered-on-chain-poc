@@ -61,7 +61,7 @@ contract Battle {
             AIAction();
         }
 
-        require(opponent[msg.sender] != address(0));
+        require(opponent[msg.sender] != address(0), "this account is not currently in a battle");
         require(action > 0 && action <= NUM_ACTIONS, "action selected out of bounds");
 
         // handle fainted mon case
@@ -155,6 +155,8 @@ contract Battle {
     }
 
     function doAttack(uint attackerId, uint moveSlot, uint defenderId) private {
+        // https://bulbapedia.bulbagarden.net/wiki/Damage
+        // keep in mind that all stats are inflated by 100 to prevent rounding errors
         bool isPhysical;
         uint power;
         uint accuracy;
@@ -184,8 +186,6 @@ contract Battle {
     }
 
     function playerDoAction() private {
-        // https://bulbapedia.bulbagarden.net/wiki/Damage
-        // keep in mind that all stats are inflated by 100 to prevent rounding errors
         uint playerMonId = _monManager.addressToParty(msg.sender, 0);
         uint aiMonId = _monManager.addressToPartyAI(msg.sender, 0);
 
@@ -214,7 +214,8 @@ contract Battle {
 
     function AIDoAction() private {
         uint aiMonId = _monManager.addressToPartyAI(msg.sender, 0);
-        if (_monNFT.idToHP(aiMonId) > 0)
+        // opponent[msg.sender] == address(this) is if player has fled
+        if (_monNFT.idToHP(aiMonId) > 0 && opponent[msg.sender] == address(this))
             {
                 if (aiAction[msg.sender] == ATTACK_ACTION) {
                     doAttack(aiMonId,

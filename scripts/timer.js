@@ -1,6 +1,5 @@
 export class Timer {
-    constructor(phaser) {
-        this.phaser = phaser;
+    constructor() {
         this.cooldowns = {
             'movement' : 100,
         };
