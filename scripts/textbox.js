@@ -27,7 +27,6 @@ export function createTextBox(scene, x, y, config) {
     })
         .setOrigin(0, 1)
         .layout();
-    console.log('textbox', textBox);
 
     return textBox;
 };
@@ -36,7 +35,7 @@ export function getBBcodeText(scene, wrapWidth, fixedWidth, fixedHeight) {
     return scene.rexUI.add.BBCodeText(0, 0, '', {
         fixedWidth: fixedWidth,
         fixedHeight: fixedHeight,
-        fontSize: '9px',
+        fontSize: '10px',
         color: '#454545',
         wrap: {
             mode: 'word',

@@ -2,6 +2,7 @@
 import { Constants } from './constants.js';
 import { Timer } from './timer.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
+var constants = new Constants();
 
 
 function makeMonObject(monArray) {
@@ -25,7 +26,7 @@ function padString(string, amount, padchar=' ') {
     return string + padchar.repeat(amount - string.length);
 }
 
-const MOVE_STRING_LENGTH = 10;
+const MOVE_STRING_LENGTH = 13;
 function movesetTextbox(scene, mon, moveSelection) {
     var content = '';
     var moveset;
@@ -48,9 +49,8 @@ function movesetTextbox(scene, mon, moveSelection) {
         content += padString(prefix + moveset[i], MOVE_STRING_LENGTH);
         i++;
     }
-    createTextBox(scene, 5, 155, {
-        wrapWidth: 130,
-        fixedWidth: 130,
+    createTextBox(scene, 5, constants.height - 5, {
+        fixedWidth: constants.width * 2/3 - 20,
     })
         .start(content, 0);
 }
@@ -64,9 +64,9 @@ function currentMoveTextbox(scene, mon, currentMove) {
         content = "PP " + String(currentPP);
         content += '/' + + String(maxPP) + '\nTYPE:' + getTypeString(typeInt);
     }
-    createTextBox(scene, 150, 155, {
-        wrapWidth: 60,
-        fixedWidth: 60
+    createTextBox(scene, constants.width * 2/3, constants.height - 5, {
+        wrapWidth: constants.width * 1/3 - 20,
+        fixedWidth: constants.width * 1/3 - 20
     })
         .start(content, 0);
 }
@@ -76,9 +76,9 @@ function playerMonTextbox(scene, mon) {
     var content = padString(mon['name'], MON_NAME_LENGTH);
     content += "Lv" + String(mon['level']) + '\n';
     content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
-    createTextBox(scene, 120, 120, {
-        wrapWidth: 90,
-        fixedWidth: 90
+    createTextBox(scene, constants.width * 2/3 - 20, 150, {
+        wrapWidth: constants.width * 1/3,
+        fixedWidth: constants.width * 1/3
     })
         .start(content, 0);
 }
@@ -88,9 +88,9 @@ function enemyMonTextbox(scene, mon) {
     content = padString(mon['name'], MON_NAME_LENGTH);
     content += "Lv" + String(mon['level']) + '\n';
     content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
-    createTextBox(scene, 15, 50, {
-        wrapWidth: 90,
-        fixedWidth: 90
+    createTextBox(scene, 5, 50, {
+        wrapWidth: constants.width * 1/3,
+        fixedWidth: constants.width * 1/3
     })
         .start(content, 0);
 }
@@ -111,6 +111,7 @@ export class Battle extends Phaser.Scene {
             sceneKey: 'rexUI'
         });
         // load the mons in both parties
+        this.load.image('background', 'assets/battle-background.jpg');
         this.load.image('mon_1_back', 'assets/pokemon/main-sprites/firered-leafgreen/back/1.png');
         this.load.image('mon_16_front', 'assets/pokemon/main-sprites/firered-leafgreen/16.png');
     }
@@ -127,11 +128,6 @@ export class Battle extends Phaser.Scene {
             if (!data['inBattle']) {
                 // if battle done, transition back to overworld
                 console.log("jump back to overworld");
-                // this.scene.transition({
-                //     target: 'Overworld',
-                //     duration: 1000,
-                // });
-                // this.scene.start('Overworld');
                 this.scene.stop('Battle');
                 this.scene.wake('Overworld');
             }
@@ -159,8 +155,12 @@ export class Battle extends Phaser.Scene {
             socket.emit('battleUI');
         });
 
-        this.add.image(70, 110, 'mon_1_back');
-        this.add.image(160, 50, 'mon_16_front');
+        this.add.image(150, 80, 'background')
+            .setScale(1.4);
+        this.add.image(70, 130, 'mon_1_back')
+            .setScale(1.5);
+        this.add.image(220, 60, 'mon_16_front')
+            .setScale(1.5);
     }
 
     redrawMoveTextboxes() {

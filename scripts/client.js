@@ -222,8 +222,8 @@ class Overworld extends Phaser.Scene {
 
 var config = {
     type: Phaser.AUTO,
-    width: 400,
-    height: 300,
+    width: constants.width,
+    height: constants.height,
     pixelArt: true,
     scene: [
         Overworld,
