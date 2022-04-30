@@ -25,7 +25,6 @@ class Overworld extends Phaser.Scene {
     }
 
     preload() {
-
         this.load.scenePlugin({
             key: 'rexuiplugin',
             url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js',
@@ -39,26 +38,23 @@ class Overworld extends Phaser.Scene {
         this.socket.on('wildEncounter', () => {
             console.log("transitioning to battle with wild mon");
             this.socket.emit('battleUI');
-
-            // this.scene.transition({
-            //     target: 'Battle',
-            //     duration: 1000,
-            //     data: this.socket});
             this.scene.sleep('Overworld');
             this.scene.run('Battle', this.socket);
         });
         this.socket.emit('random', '');
 
         this.timer = new Timer();
-        this.load.image("tiles", "../assets/route_1.png");
-        this.load.tilemapTiledJSON("map", "../assets/route_1/untitled.json");
+        // this.load.image("tiles", "../assets/route_1.png");
+        // this.load.tilemapTiledJSON("map", "../assets/route_1/untitled.json");
+        this.load.image("tiles", "../assets/tilesets/pallet_town.png");
+        this.load.tilemapTiledJSON("map", "../assets/tilesets/pallet_town.json");
         this.load.atlas("atlas", "../assets/atlas/atlas.png", "../assets/atlas/atlas.json");
     }
 
     create() {
-
         map = this.make.tilemap({ key : "map" });
-        tileset = map.addTilesetImage("route_1", "tiles");
+        // tileset = map.addTilesetImage("route_1", "tiles");
+        tileset = map.addTilesetImage("pallet_town", "tiles");
 
         // const belowLayer = map.createLayer("Below Player", tileset, 0, 0);
         const worldLayer = map.createLayer("World", tileset, 0 , 0);
@@ -66,12 +62,22 @@ class Overworld extends Phaser.Scene {
 
         worldLayer.setCollisionByProperty({collision: true });
 
+        var obj, tileAtObj;
         var messageObjects = map.getObjectLayer("Messages").objects;
         for (var i in messageObjects) {
-            var obj = messageObjects[i];
-            var tileAtObj = map.getTileAtWorldXY(obj.x, obj.y);
+            obj = messageObjects[i];
+            tileAtObj = map.getTileAtWorldXY(obj.x, obj.y);
             tileAtObj.properties['message'] = obj.properties[0]['value'];
         }
+
+        var mapObjects = map.getObjectLayer("MapMovement").objects;
+        for (var i in mapObjects) {
+            obj = mapObjects[i];
+            tileAtObj = map.getTileAtWorldXY(obj.x, obj.y);
+            if (typeof obj.properties !== 'undefined')
+                tileAtObj.properties['to'] = obj.properties[0]['value'];
+        }
+
         const spawnPoint = map.findObject("MapMovement", obj => obj.name === "SpawnPoint");
         player = this.physics.add
             .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-back")
@@ -137,14 +143,13 @@ class Overworld extends Phaser.Scene {
         this.right = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         this.keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
-
     }
 
     update(time, delta) {
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
 
-        // - 8 magic because we want the tile at the player's head
+        // + 8 magic - we want the tile relative to the player's head, this is a proxy for that
         var currentTile =  map.getTileAtWorldXY(player.x, player.y + 8);
         if (typeof prevTile === 'undefined' || currentTile.index !== prevTile.index) {
             // on new tile
@@ -152,6 +157,11 @@ class Overworld extends Phaser.Scene {
                 && typeof this.prng !== 'undefined'
                 && this.prng() < constants.wildEncounterChance) {
                 this.socket.emit('wildEncounter', '');
+            }
+            if (currentTile.properties['to']) {
+                console.log('go to world', currentTile.properties['to']);
+                this.scene.add('Overworld1', this);
+                this.scene.run('Overworld1');
             }
             prevTile = currentTile;
         }
@@ -209,7 +219,7 @@ class Overworld extends Phaser.Scene {
             var facingTile = map.getTileAt(currentTile.x + facingCoords[0], currentTile.y + facingCoords[1]);
             if (typeof currentTextBox !== 'undefined' && currentTextBox.active) {
                 if (currentTextBox.isTyping) currentTextBox.stop(true);
-                else currentTextBox.isLastPage ? currentTextBox.destroy() : currentTypeBox.typeNextPage();
+                else currentTextBox.isLastPage ? currentTextBox.destroy() : currentTextBox.typeNextPage();
             } else if (typeof facingTile.properties['message'] !== 'undefined') {
                 currentTextBox = createTextBox(this,
                                                facingTile.pixelX - 10,
