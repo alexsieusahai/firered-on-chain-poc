@@ -5,8 +5,11 @@ import "./MonManager.sol";
 import "./Constants.sol";
 import "./MonTypes.sol";
 import "./MonCoin.sol";
+import "./ServerOwnable.sol";
 
-contract Battle {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract Battle is Ownable, ServerOwnable {
     /*
      Handles on-chain battling between two parties.
      TODO VRF instead of block.timestamp?
@@ -47,25 +50,27 @@ contract Battle {
         require(false, "NotImplemented");
     }
 
-    function startBattleWild() public {
-        opponent[msg.sender] = address(this);
-        aiStrategy[msg.sender] = WILD_AI;
-        _monManager.setPartyMemberAI(msg.sender, 0, _monNFT.getLatestMon(msg.sender));
+    function startBattleWild(address addr)
+        public onlyServer {
+        opponent[addr] = address(this);
+        aiStrategy[addr] = WILD_AI;
+        _monManager.setPartyMemberAI(addr, 0, _monNFT.getLatestMon(addr));
     }
 
-    function startBattleAITrainer(uint[] memory monIds, uint coin) public {
-        // Generates copies of all passed in mons, and begins a battle with the msg.sender with those mon clones.
-        opponent[msg.sender] = address(this);
+    function startBattleAITrainer(address addr, uint[] memory monIds, uint coin) public {
+        // Generates copies of all passed in mons, and begins a battle with the addr with those mon clones.
+        opponent[addr] = address(this);
         console.log("NOTIMPLEMENTED: trainer AI; just using WILD_AI for now");
-        aiStrategy[msg.sender] = WILD_AI;
+        aiStrategy[addr] = WILD_AI;
         uint[] memory enemyIds;
         for (uint i = 0; i < monIds.length; ++i) {
-            _monManager.setPartyMemberAI(msg.sender, i, _monNFT.cloneMon(monIds[i]));
+            _monManager.setPartyMemberAI(addr, i, _monNFT.cloneMon(monIds[i]));
         }
-        coinReward[msg.sender] = coin;
+        coinReward[addr] = coin;
     }
 
-    function ingestAction(uint action, uint slot) public {
+    function ingestAction(address addr, uint action, uint slot)
+        public onlyServer {
         /*
          We can
          action=1 (Attack)
@@ -73,45 +78,45 @@ contract Battle {
          action=3 (Party)
          action=4 (Run)
          */
-        if (aiStrategy[msg.sender] > 0) {
-            AIAction();
+        if (aiStrategy[addr] > 0) {
+            AIAction(addr);
         }
 
-        require(opponent[msg.sender] != address(0), "this account is not currently in a battle");
+        require(opponent[addr] != address(0), "this account is not currently in a battle");
         require(action > 0 && action <= NUM_ACTIONS, "action selected out of bounds");
 
         // handle fainted mon case
         bool faintedMonCase = false;
-        if (_monNFT.idToHP(_monManager.addressToParty(msg.sender, 0)) == 0) {
+        if (_monNFT.idToHP(_monManager.addressToParty(addr, 0)) == 0) {
             require(action == PARTY_ACTION, "current mon has fainted; need to switch to a healthy mon");
             faintedMonCase = true;
         }
 
-        playerAction[msg.sender] = action;
-        playerSlot[msg.sender] = slot;
+        playerAction[addr] = action;
+        playerSlot[addr] = slot;
 
-        if (aiStrategy[msg.sender] == 0) {
+        if (aiStrategy[addr] == 0) {
             // would have to see if the other player has acted
             // and if they have, then play the turn out
             require(false, "NotImplemented");
         } else {
             // AI has already acted
             console.log("NOTIMPLEMENTEDWARNING: fainted mon case not properly handled");
-            handleTurnAI();
+            handleTurnAI(addr);
         }
 
-        if (finishBattleCheck()) {
-            finishBattle();
+        if (finishBattleCheck(addr)) {
+            finishBattle(addr);
         }
     }
 
-    function finishBattleCheck()
+    function finishBattleCheck(address addr)
         private view
         returns (bool) {
         bool allFainted = true;
         // player party check
         for (uint i = 0; i < Constants.PARTY_SIZE; ++i) {
-            if (_monNFT.idToHP(_monManager.addressToParty(msg.sender, i)) > 0) {
+            if (_monNFT.idToHP(_monManager.addressToParty(addr, i)) > 0) {
                 allFainted = false;
             }
         }
@@ -121,24 +126,24 @@ contract Battle {
         allFainted = true;
         // ai party check
         for (uint i = 0; i < Constants.PARTY_SIZE; ++i) {
-            if (_monNFT.idToHP(_monManager.addressToPartyAI(msg.sender, i)) > 0) {
+            if (_monNFT.idToHP(_monManager.addressToPartyAI(addr, i)) > 0) {
                 allFainted = false;
             }
         }
         return allFainted;
     }
 
-    function finishBattle() private {
+    function finishBattle(address addr) private {
         // https://bulbapedia.bulbagarden.net/wiki/Experience#Experience_gain_in_battle
 
-        _monCoin.postBattleCoins(msg.sender, coinReward[msg.sender]);
-        coinReward[msg.sender] = 0;
+        _monCoin.postBattleCoins(addr, coinReward[addr]);
+        coinReward[addr] = 0;
 
         // teardown the battle
-        address opponentAddress = opponent[msg.sender];
-        opponent[msg.sender] = address(0);
+        address opponentAddress = opponent[addr];
+        opponent[addr] = address(0);
         opponent[opponentAddress] = address(0);
-        aiStrategy[msg.sender] = 0;
+        aiStrategy[addr] = 0;
     }
 
     function handleMonFaintExpEV(uint attackerId, uint defenderId)
@@ -201,25 +206,25 @@ contract Battle {
         }
     }
 
-    function playerDoAction() private {
-        uint playerMonId = _monManager.addressToParty(msg.sender, 0);
-        uint aiMonId = _monManager.addressToPartyAI(msg.sender, 0);
+    function playerDoAction(address addr) private {
+        uint playerMonId = _monManager.addressToParty(addr, 0);
+        uint aiMonId = _monManager.addressToPartyAI(addr, 0);
 
         if (_monNFT.idToHP(playerMonId) > 0)
             {
-                if (playerAction[msg.sender] == ATTACK_ACTION) {
+                if (playerAction[addr] == ATTACK_ACTION) {
                     doAttack(playerMonId,
-                             playerSlot[msg.sender],
+                             playerSlot[addr],
                              aiMonId);
-                } else if (playerAction[msg.sender] == PARTY_ACTION) {
-                    _monManager.swapPartyMember(msg.sender, 0, playerSlot[msg.sender]);
-                } else if (playerAction[msg.sender] == RUN_ACTION) {
-                    if (opponent[msg.sender] == address(this) && aiStrategy[msg.sender] != 1) {
+                } else if (playerAction[addr] == PARTY_ACTION) {
+                    _monManager.swapPartyMember(addr, 0, playerSlot[addr]);
+                } else if (playerAction[addr] == RUN_ACTION) {
+                    if (opponent[addr] == address(this) && aiStrategy[addr] != 1) {
                         console.log("NOTIMPLEMENTED: trainer flees not allowed, tell the frontend somehow...");
                     } else {
                         console.log("fleeing...");
                         console.log("NOTIMPLEMENTED: fleeing as forfeit for player-player battles not implemented");
-                        finishBattle();
+                        finishBattle(addr);
                     }
                 }
                 else {
@@ -228,57 +233,57 @@ contract Battle {
             }
     }
 
-    function AIDoAction() private {
-        uint aiMonId = _monManager.addressToPartyAI(msg.sender, 0);
-        // opponent[msg.sender] == address(this) is if player has fled
-        if (_monNFT.idToHP(aiMonId) > 0 && opponent[msg.sender] == address(this))
+    function AIDoAction(address addr) private {
+        uint aiMonId = _monManager.addressToPartyAI(addr, 0);
+        // opponent[addr] == address(this) is if player has fled
+        if (_monNFT.idToHP(aiMonId) > 0 && opponent[addr] == address(this))
             {
-                if (aiAction[msg.sender] == ATTACK_ACTION) {
+                if (aiAction[addr] == ATTACK_ACTION) {
                     doAttack(aiMonId,
-                             aiSlot[msg.sender],
-                             _monManager.addressToParty(msg.sender, 0));
+                             aiSlot[addr],
+                             _monManager.addressToParty(addr, 0));
                 } else {
                     require(false, "NotImplemented");
                 }
             }
     }
 
-    function handleTurnAI() private {
+    function handleTurnAI(address addr) private {
         // player's actions are held in playerAction, playerSlot
         // opponent (AI) actions are held in aiAction, aiSlot
 
-        require(aiStrategy[msg.sender] == 1, "only wild mon case is implemented");
+        require(aiStrategy[addr] == 1, "only wild mon case is implemented");
 
 
-        uint playerMonId = _monManager.addressToParty(msg.sender, 0);
+        uint playerMonId = _monManager.addressToParty(addr, 0);
         uint pspeed;
         (,,,,,pspeed) = _monNFT.idToStats(playerMonId);
-        if (playerAction[msg.sender] != ATTACK_ACTION) {
+        if (playerAction[addr] != ATTACK_ACTION) {
             pspeed = 1000; // priority
         }
 
-        uint aiMonId = _monManager.addressToPartyAI(msg.sender, 0);
+        uint aiMonId = _monManager.addressToPartyAI(addr, 0);
         uint wspeed;
         (,,,,,wspeed) = _monNFT.idToStats(aiMonId);
-        if (aiAction[msg.sender] != ATTACK_ACTION) {
+        if (aiAction[addr] != ATTACK_ACTION) {
             wspeed = 1000; // priority
         }
 
         // figure out who moves first
         if (pspeed >= wspeed) {
-            playerDoAction();
-            AIDoAction();
+            playerDoAction(addr);
+            AIDoAction(addr);
         } else {
-            AIDoAction();
-            playerDoAction();
+            AIDoAction(addr);
+            playerDoAction(addr);
         }
     }
 
-    function AIAction() internal {
+    function AIAction(address addr) internal {
         // wild pokemon strategy; just randomly select 1 of 4 moves
-        if (aiStrategy[msg.sender] == 1) {
-            aiAction[msg.sender] = 1;
-            aiSlot[msg.sender] = block.timestamp % 4;
+        if (aiStrategy[addr] == 1) {
+            aiAction[addr] = 1;
+            aiSlot[addr] = block.timestamp % 4;
         } else {
             require(false, "NotImplemented");
         }

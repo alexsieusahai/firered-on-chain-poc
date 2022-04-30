@@ -15,6 +15,7 @@ let player;
 let prevTile;
 let facingCoords;
 let currentTextBox;
+let socket = io('http://localhost:3000');
 
 class Overworld extends Phaser.Scene {
     constructor(config) {
@@ -39,7 +40,8 @@ class Overworld extends Phaser.Scene {
             sceneKey: 'rexUI'
         });
 
-        this.socket = io('http://localhost:3000');
+        // this.socket = io('http://localhost:3000');
+        this.socket = socket;
         this.socket.on('connect', () => console.log('connected to server! id:', this.socket.id));
         this.socket.on('random', seed => {this.prng = new Math.seedrandom(seed); });
         this.socket.on('wildEncounter', () => {
@@ -50,6 +52,9 @@ class Overworld extends Phaser.Scene {
             this.scene.run('Battle', {socket: this.socket, from: this.tileset_name});
         });
         this.socket.emit('random', '');
+
+        // console.warn('DEBUG wild encounter');
+        // this.socket.emit('wildEncounter', '');
 
         this.timer = new Timer();
         this.load.image("tiles_" + this.tileset_name, "../assets/tilesets/" + this.tileset_name + ".png");
@@ -255,4 +260,28 @@ var config = {
     }
 };
 
-var game = new Phaser.Game(config);
+if (typeof window.ethereum !== 'undefined') {
+    console.log('MetaMask is installed!');
+}
+
+async function f() {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send('eth_requestAccounts', []);
+    const signer = provider.getSigner();
+    socket.emit('signerAddress', await signer.getAddress());
+
+    // const greeterAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+    // const greeterAbi = [
+    //     'function greet() public view returns (string memory)'
+    // ];
+    // const greeterContract = new ethers.Contract(greeterAddress, greeterAbi, provider);
+    // var greeting = await greeterContract.greet();
+    // console.log('greeting', greeting);
+}
+
+const ethereumButton = document.querySelector('.enableEthereumButton');
+ethereumButton.addEventListener('click', () => {
+    f().then(() => {});
+    var game = new Phaser.Game(config);
+});
+

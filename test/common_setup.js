@@ -41,6 +41,9 @@ async function deployContracts(testObj) {
         testObj.monTypes.address,
         testObj.monCoin.address);
     await testObj.battle.deployed();
+
+    await testObj.battle.addServerAddress(testObj.user0.address);
+    await testObj.monManager.addServerAddress(testObj.user0.address);
     await testObj.monNFT.setBattleAddress(testObj.battle.address);
     await testObj.monManager.setBattleAddress(testObj.battle.address);
     await testObj.monCoin.setMonNFTAddress(testObj.monNFT.address);

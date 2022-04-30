@@ -2,12 +2,10 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <!-- <script data-main="scripts/main" src="scripts/require.js"></script> -->
         <script type="text/javascript" src="scripts/phaser.js"></script>
-        <!-- <script type="text/javascript" src="scripts/Boot.js"></script> -->
-        <!-- <script type="text/javascript" src="scripts/Preload.js"></script> -->
-        <!-- <script type="text/javascript" src="scripts/MainMenu.js"></script> -->
-        <!-- <script type="text/javascript" src="scripts/Game.js"></script> -->
+        <!-- TODO this is probably a security risk; should change -->
+        <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"
+                type="application/javascript"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js">
         </script>
         <style>
@@ -18,9 +16,8 @@
         </style>
     </head>
     <body>
-        <!-- load lib files -->
+        <button class="enableEthereumButton">Enable Ethereum</button>
         <script src="./scripts/lib/socket.io.min.js"></script>
-
         <script type="module" src="scripts/constants.js"></script>
         <script type="module" src="scripts/timer.js"></script>
         <script type="module" src="scripts/client.js"></script>

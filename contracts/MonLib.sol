@@ -22,5 +22,4 @@ library MonLib {
         uint[4] currentPP;
         uint[4] maxPP;
     }
-
 }

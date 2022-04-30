@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const speciesIdToName = require(__dirname + '/../data/dex.json');
 
-// use the test provider
+// this is essentially our "server account"
 var hhProvider = new ethers.providers.WebSocketProvider("http://127.0.0.1:8545");
+const hhAcc10Signer = new ethers.Wallet('0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', hhProvider);
 
 class Chain {
     constructor() {
@@ -13,18 +14,22 @@ class Chain {
         this.loadContracts().then(() => console.log("loaded all contracts!"));
     }
 
+    setSignerAddress(addr) {
+        this.signerAddress = addr;
+        console.log('chain set signerAddress', this.signerAddress);
+    }
+
     async loadContracts() {
         var contractsJSON = JSON.parse(fs.readFileSync(__dirname + "/../contracts.json"));
         this.contracts = {};
 
         const signer = hhProvider.getSigner();
-        console.warn("signer here certainly needs to be obtained from like metamask or something in the future...");
         for (var key in contractsJSON) {
             contractsJSON[key]["artifact"] = JSON.parse(contractsJSON[key]["artifact"]);
             this.contracts[key] = new ethers.Contract(
                 contractsJSON[key]["address"],
                 contractsJSON[key]["artifact"].abi,
-                signer
+                (key === 'Battle') ? hhAcc10Signer : signer,
             );
             console.log("loaded contract with key", key);
         }
@@ -41,36 +46,31 @@ class Chain {
 
     async getWildMon() {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
-        const [deployer] = await ethers.getSigners();
-        const tx = await this.contracts["MonNFT"].mintWildMon(deployer.address, 0);
+        const tx = await this.contracts["MonNFT"].mintWildMon(this.signerAddress, 0);
         await tx.wait();
-        await this.contracts["Battle"].startBattleWild();
+        await this.contracts["Battle"].connect(hhAcc10Signer).startBattleWild(this.signerAddress);
     }
 
     async getParty() {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
-        const [deployer] = await ethers.getSigners();
-        var party = await this.contracts["MonManager"].getParty(deployer.address);
+        var party = await this.contracts["MonManager"].getParty(this.signerAddress);
         return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }
 
     async getPartyAI() {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
-        const [deployer] = await ethers.getSigners();
-        var party = await this.contracts["MonManager"].getPartyAI(deployer.address);
+        var party = await this.contracts["MonManager"].getPartyAI(this.signerAddress);
         return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }
 
     async battleIngestAction(action, slot) {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
-        const [deployer] = await ethers.getSigners();
-        await this.contracts["Battle"].ingestAction(action, slot);
+        await this.contracts["Battle"].connect(hhAcc10Signer).ingestAction(this.signerAddress, action, slot);
     }
 
     async inBattle() {
         console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
-        const [deployer] = await ethers.getSigners();
-        return await this.contracts["Battle"].inBattle(deployer.address);
+        return await this.contracts["Battle"].inBattle(this.signerAddress);
     }
 }
 

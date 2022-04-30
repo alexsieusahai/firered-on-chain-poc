@@ -38,6 +38,11 @@ function preload() {
             chain.callGreet().then(greet => socket.emit('greeting', greet));
         });
 
+        socket.on('signerAddress', address => {
+            console.log('obtained signerAddress', address);
+            chain.setSignerAddress(address);
+        });
+
         socket.on('random', (_) => {
             chain.getRandom().then(random => socket.emit('random', random));
         });
@@ -67,6 +72,10 @@ function preload() {
             chain.battleIngestAction(data['action'], data['slot']).then( () => {
                 socket.emit('battleIngestActionCompleted');
             });
+        });
+
+        socket.on('signer', data => {
+            console.log('signer', data);
         });
     });
 }

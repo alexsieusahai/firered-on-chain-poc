@@ -2,6 +2,7 @@ const { ethers } = require("hardhat");
 const fs = require('fs');
 
 var hhProvider = new ethers.providers.WebSocketProvider("http://127.0.0.1:8545");
+const hhAcc10Signer = new ethers.Wallet('0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', hhProvider);
 
 class Deploy {
     constructor() {
@@ -51,6 +52,8 @@ class Deploy {
                                            this.monTypes.address,
                                            this.monCoin.address);
         await this.battle.deployed();
+
+        await this.battle.addServerAddress(hhAcc10Signer.address);
         await this.monCoin.setMonNFTAddress(this.monNFT.address);
         await this.monCoin.setBattleAddress(this.battle.address);
         await this.monNFT.setBattleAddress(this.battle.address);
