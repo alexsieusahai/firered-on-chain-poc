@@ -116,8 +116,9 @@ export class Battle extends Phaser.Scene {
         this.load.image('mon_16_front', 'assets/pokemon/main-sprites/firered-leafgreen/16.png');
     }
 
-    create(socket) {
-        this.socket = socket;
+    create(data) {
+        this.socket = data.socket;
+        this.previousSceneKey = data.from;
         this.menuSelection = 0;
         this.menuState = "ACTION";
 
@@ -127,9 +128,9 @@ export class Battle extends Phaser.Scene {
 
             if (!data['inBattle']) {
                 // if battle done, transition back to overworld
-                console.log("jump back to overworld");
+                console.log("jump back to overworld scene");
                 this.scene.stop('Battle');
-                this.scene.wake('Overworld');
+                this.scene.wake(this.previousSceneKey);
             }
 
             // setup all of the textboxes
@@ -152,7 +153,7 @@ export class Battle extends Phaser.Scene {
 
         // after action has completed, ask for new UI data and subsequently redraw upon ingestion
         this.socket.on('battleIngestActionCompleted', () => {
-            socket.emit('battleUI');
+            this.socket.emit('battleUI');
         });
 
         this.add.image(150, 80, 'background')

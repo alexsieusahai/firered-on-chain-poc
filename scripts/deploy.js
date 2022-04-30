@@ -25,8 +25,15 @@ class Deploy {
         this.moves = await Moves.deploy();
         await this.saveContract("Moves", this.moves);
 
+        const MonCoin = await ethers.getContractFactory("MonCoin");
+        this.monCoin = await MonCoin.deploy();
+        await this.saveContract("MonCoin", this.monCoin);
+
         const MonNFT = await ethers.getContractFactory("MonNFT");
-        this.monNFT = await MonNFT.deploy(dumbRandom.address, this.monBaseStats.address, this.moves.address);
+        this.monNFT = await MonNFT.deploy(dumbRandom.address,
+                                          this.monBaseStats.address,
+                                          this.moves.address,
+                                          this.monCoin.address);
         await this.saveContract("MonNFT", this.monNFT);
 
         const MonTypes = await ethers.getContractFactory("MonTypes");
@@ -38,14 +45,17 @@ class Deploy {
         await this.saveContract("MonManager", this.monManager);
 
         const Battle = await ethers.getContractFactory("Battle");
-        const battle = await Battle.deploy(this.monNFT.address,
+        this.battle = await Battle.deploy(this.monNFT.address,
                                            this.monManager.address,
                                            this.moves.address,
-                                           this.monTypes.address);
-        await battle.deployed();
-        await this.monNFT.setBattleAddress(battle.address);
-        await this.monManager.setBattleAddress(battle.address);
-        await this.saveContract("Battle", battle);
+                                           this.monTypes.address,
+                                           this.monCoin.address);
+        await this.battle.deployed();
+        await this.monCoin.setMonNFTAddress(this.monNFT.address);
+        await this.monCoin.setBattleAddress(this.battle.address);
+        await this.monNFT.setBattleAddress(this.battle.address);
+        await this.monManager.setBattleAddress(this.battle.address);
+        await this.saveContract("Battle", this.battle);
     }
 
     async setBaseStats() {
@@ -54,6 +64,7 @@ class Deploy {
         await this.monBaseStats.setStats(1, 4500, 4900, 4900, 6500, 6500, 4500);
         // pidgey mock
         await this.monBaseStats.setStats(16, 4000, 4500, 4000, 3500, 3500, 5600);
+        console.log('setup base stats!');
     }
 
     async setMonTypes() {
@@ -66,6 +77,7 @@ class Deploy {
 
     async setMoves() {
         await this.moves.addInfo("Tackle", 0, true, 40, 100, 35, true);
+        console.log('added moves!');
     }
 
     async setTypeChart() {
@@ -146,12 +158,12 @@ class Deploy {
         // mint a bulbasaur for the user and put it into user's party in first slot
         await this.monNFT.mintSpeciesMon(this.user.address, 1, 5, 1, 0, 0, 0);
         await this.monManager.setPartyMember(0, 1);
+        console.log('setup user!');
     }
 
     async setupNPCMons() {
         // we can use mintSpeciesMon for now, and give Battle.sol the mons
-        await this.monManager.mintSpeciesMon(this.battle.address, 1, 3, 1, 0, 0, 0);
-
+        await this.monNFT.mintSpeciesMon(this.battle.address, 1, 3, 1, 0, 0, 0);
     }
 
     async deploy() {

@@ -12,16 +12,24 @@ var timer;
 let cursors;
 let controls;
 let player;
-let map;
-let tileset;
 let prevTile;
 let facingCoords;
-let tiledObjects;
 let currentTextBox;
 
 class Overworld extends Phaser.Scene {
-    constructor() {
-        super({key: 'Overworld'});
+    constructor(config) {
+        super(config);
+    }
+
+    init(data) {
+        console.log('init data', data);
+        if (typeof data['tileset'] === 'undefined') {
+            this.tileset_name = 'pallet_town';
+            this.tilemap_name = 'pallet_town';
+        } else {
+            this.tileset_name = data['tileset'];
+            this.tilemap_name = data['tilemap'];
+        }
     }
 
     preload() {
@@ -31,54 +39,53 @@ class Overworld extends Phaser.Scene {
             sceneKey: 'rexUI'
         });
 
-        console.log("overworld running preload");
         this.socket = io('http://localhost:3000');
         this.socket.on('connect', () => console.log('connected to server! id:', this.socket.id));
         this.socket.on('random', seed => {this.prng = new Math.seedrandom(seed); });
         this.socket.on('wildEncounter', () => {
             console.log("transitioning to battle with wild mon");
             this.socket.emit('battleUI');
-            this.scene.sleep('Overworld');
-            this.scene.run('Battle', this.socket);
+            console.log("NOTIMPLEMENTED: below line shouldn't be default, it should be the name of the scene");
+            this.scene.sleep(this.tileset_name);
+            this.scene.run('Battle', {socket: this.socket, from: this.tileset_name});
         });
         this.socket.emit('random', '');
 
         this.timer = new Timer();
-        // this.load.image("tiles", "../assets/route_1.png");
-        // this.load.tilemapTiledJSON("map", "../assets/route_1/untitled.json");
-        this.load.image("tiles", "../assets/tilesets/pallet_town.png");
-        this.load.tilemapTiledJSON("map", "../assets/tilesets/pallet_town.json");
+        this.load.image("tiles_" + this.tileset_name, "../assets/tilesets/" + this.tileset_name + ".png");
+        this.load.tilemapTiledJSON("map_" + this.tileset_name, "../assets/tilesets/" + this.tilemap_name + ".json");
         this.load.atlas("atlas", "../assets/atlas/atlas.png", "../assets/atlas/atlas.json");
     }
 
-    create() {
-        map = this.make.tilemap({ key : "map" });
-        // tileset = map.addTilesetImage("route_1", "tiles");
-        tileset = map.addTilesetImage("pallet_town", "tiles");
+    create(config) {
+        this.map = this.make.tilemap({ key : "map_" + this.tileset_name });
+        this.tileset = this.map.addTilesetImage(this.tileset_name, "tiles_" + this.tileset_name);
 
-        // const belowLayer = map.createLayer("Below Player", tileset, 0, 0);
-        const worldLayer = map.createLayer("World", tileset, 0 , 0);
-        // const aboveLayer = map.createLayer("Above Player", tileset, 0, 0);
+        // const belowLayer = map.createLayer("Below Player", this.tileset, 0, 0);
+        const worldLayer = this.map.createLayer("World", this.tileset, 0 , 0);
+        // const aboveLayer = map.createLayer("Above Player", this.tileset, 0, 0);
 
         worldLayer.setCollisionByProperty({collision: true });
 
         var obj, tileAtObj;
-        var messageObjects = map.getObjectLayer("Messages").objects;
-        for (var i in messageObjects) {
+        var messageObjects = this.map.getObjectLayer("Messages").objects;
+        var i;
+        for (i in messageObjects) {
             obj = messageObjects[i];
-            tileAtObj = map.getTileAtWorldXY(obj.x, obj.y);
+            tileAtObj = this.map.getTileAtWorldXY(obj.x, obj.y);
             tileAtObj.properties['message'] = obj.properties[0]['value'];
         }
 
-        var mapObjects = map.getObjectLayer("MapMovement").objects;
-        for (var i in mapObjects) {
+        var mapObjects = this.map.getObjectLayer("MapMovement").objects;
+        for (i in mapObjects) {
             obj = mapObjects[i];
-            tileAtObj = map.getTileAtWorldXY(obj.x, obj.y);
+            tileAtObj = this.map.getTileAtWorldXY(obj.x, obj.y);
             if (typeof obj.properties !== 'undefined')
                 tileAtObj.properties['to'] = obj.properties[0]['value'];
         }
 
-        const spawnPoint = map.findObject("MapMovement", obj => obj.name === "SpawnPoint");
+        const spawnPoint = this.map.findObject("MapMovement", obj => obj.name === "SpawnPoint");
+        console.log("spawnPoint is", spawnPoint);
         player = this.physics.add
             .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-back")
             .setSize(30, 40)
@@ -135,7 +142,7 @@ class Overworld extends Phaser.Scene {
 
         const camera = this.cameras.main;
         camera.startFollow(player);
-        camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+        camera.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
         this.up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.left = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -150,7 +157,7 @@ class Overworld extends Phaser.Scene {
         const prevVelocity = player.body.velocity.clone();
 
         // + 8 magic - we want the tile relative to the player's head, this is a proxy for that
-        var currentTile =  map.getTileAtWorldXY(player.x, player.y + 8);
+        var currentTile =  this.map.getTileAtWorldXY(player.x, player.y + 8);
         if (typeof prevTile === 'undefined' || currentTile.index !== prevTile.index) {
             // on new tile
             if (currentTile.properties['tallGrass']
@@ -160,8 +167,8 @@ class Overworld extends Phaser.Scene {
             }
             if (currentTile.properties['to']) {
                 console.log('go to world', currentTile.properties['to']);
-                this.scene.add('Overworld1', this);
-                this.scene.run('Overworld1');
+                this.scene.add('route_1', Overworld, false, {tileset: 'route_1', tilemap: 'route_1'});
+                this.scene.start('route_1');
             }
             prevTile = currentTile;
         }
@@ -216,7 +223,7 @@ class Overworld extends Phaser.Scene {
         if (this.keyZ.isDown && this.timer.timer('movement')) {
             // if textbox already open, handle interaction
             // otherwise, spin up textbox
-            var facingTile = map.getTileAt(currentTile.x + facingCoords[0], currentTile.y + facingCoords[1]);
+            var facingTile = this.map.getTileAt(currentTile.x + facingCoords[0], currentTile.y + facingCoords[1]);
             if (typeof currentTextBox !== 'undefined' && currentTextBox.active) {
                 if (currentTextBox.isTyping) currentTextBox.stop(true);
                 else currentTextBox.isLastPage ? currentTextBox.destroy() : currentTextBox.typeNextPage();
