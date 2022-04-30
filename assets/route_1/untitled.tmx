@@ -844,7 +844,7 @@
  <objectgroup id="8" name="Messages">
   <object id="13" name="Route1Message" x="200" y="182.5" visible="0">
    <properties>
-    <property name="message" value="Welcome to project_codename!"/>
+    <property name="message" value="Welcome to project_codename! This is a super long text message and I hope that I have to paginate this. Thanks!"/>
    </properties>
    <point/>
   </object>

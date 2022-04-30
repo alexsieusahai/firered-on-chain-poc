@@ -208,13 +208,14 @@ class Overworld extends Phaser.Scene {
             // otherwise, spin up textbox
             var facingTile = map.getTileAt(currentTile.x + facingCoords[0], currentTile.y + facingCoords[1]);
             if (typeof currentTextBox !== 'undefined' && currentTextBox.active) {
-                currentTextBox.destroy();
+                if (currentTextBox.isTyping) currentTextBox.stop(true);
+                else currentTextBox.isLastPage ? currentTextBox.destroy() : currentTypeBox.typeNextPage();
             } else if (typeof facingTile.properties['message'] !== 'undefined') {
                 currentTextBox = createTextBox(this,
                                                facingTile.pixelX - 10,
                                                facingTile.pixelY - 5,
                                                {wrapWidth: 100, fixedWidth: 100, indent: 8, radius: 8})
-                    .start(facingTile.properties['message'], 0);
+                    .start(facingTile.properties['message'], 5);
             }
         }
     }

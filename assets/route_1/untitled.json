@@ -70,7 +70,7 @@
                         {
                          "name":"message",
                          "type":"string",
-                         "value":"Welcome to project_codename!"
+                         "value":"Welcome to project_codename! This is a super long text message and I hope that I have to paginate this. Thanks!"
                         }],
                  "rotation":0,
                  "type":"",

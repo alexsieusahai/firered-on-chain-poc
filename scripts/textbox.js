@@ -41,7 +41,7 @@ export function getBBcodeText(scene, wrapWidth, fixedWidth, fixedHeight) {
             mode: 'word',
             width: wrapWidth
         },
-        maxLines: 10
+        maxLines: 3
     });
 };
 
