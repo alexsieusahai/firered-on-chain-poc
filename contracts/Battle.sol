@@ -4,6 +4,7 @@ import "./MonNFT.sol";
 import "./MonManager.sol";
 import "./Constants.sol";
 import "./MonTypes.sol";
+import "./MonCoin.sol";
 
 contract Battle {
     /*
@@ -23,19 +24,26 @@ contract Battle {
     mapping(address => uint) aiStrategy;
     mapping(address => uint) aiAction;
     mapping(address => uint) aiSlot;
+    mapping(address => uint) coinReward;
     MonNFT _monNFT;
     MonManager _monManager;
     Moves _moves;
     MonTypes _monTypes;
+    MonCoin _monCoin;
 
-    constructor(MonNFT monNFT, MonManager monManager, Moves moves, MonTypes monTypes) {
+    constructor(MonNFT monNFT,
+                MonManager monManager,
+                Moves moves,
+                MonTypes monTypes,
+                MonCoin monCoin) {
         _monNFT = monNFT;
         _monManager = monManager;
         _moves = moves;
         _monTypes = monTypes;
+        _monCoin = monCoin;
     }
 
-    function startBattleHuman(address opponent) public {
+    function startBattleHuman(address opp) public {
         require(false, "NotImplemented");
     }
 
@@ -45,8 +53,16 @@ contract Battle {
         _monManager.setPartyMemberAI(msg.sender, 0, _monNFT.getLatestMon(msg.sender));
     }
 
-    function startBattleAITrainer() public {
-        require(false, "NotImplemented");
+    function startBattleAITrainer(uint[] memory monIds, uint coin) public {
+        // Generates copies of all passed in mons, and begins a battle with the msg.sender with those mon clones.
+        opponent[msg.sender] = address(this);
+        console.log("NOTIMPLEMENTED: trainer AI; just using WILD_AI for now");
+        aiStrategy[msg.sender] = WILD_AI;
+        uint[] memory enemyIds;
+        for (uint i = 0; i < monIds.length; ++i) {
+            _monManager.setPartyMemberAI(msg.sender, i, _monNFT.cloneMon(monIds[i]));
+        }
+        coinReward[msg.sender] = coin;
     }
 
     function ingestAction(uint action, uint slot) public {
@@ -115,8 +131,8 @@ contract Battle {
     function finishBattle() private {
         // https://bulbapedia.bulbagarden.net/wiki/Experience#Experience_gain_in_battle
 
-        // hand out rewards
-        console.log("NOTIMPLEMENTEDWARNING: finishBattle missing pokedollar handout");
+        _monCoin.postBattleCoins(msg.sender, coinReward[msg.sender]);
+        coinReward[msg.sender] = 0;
 
         // teardown the battle
         address opponentAddress = opponent[msg.sender];

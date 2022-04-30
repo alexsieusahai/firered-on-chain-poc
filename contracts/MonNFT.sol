@@ -6,6 +6,7 @@ import "./DumbRandom.sol";
 import "./MonLib.sol";
 import "./MonBaseStats.sol";
 import "./Moves.sol";
+import "./MonCoin.sol";
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -22,6 +23,7 @@ contract MonNFT is ERC721URIStorage, Ownable {
     DumbRandom private _dumbRandom;
     MonBaseStats private _baseStats;
     Moves private _moves;
+    MonCoin private _monCoin;
     address private _battleAddress;
 
     mapping(uint => uint) public idToSpecies;
@@ -39,10 +41,15 @@ contract MonNFT is ERC721URIStorage, Ownable {
     mapping(uint => address) public idToOwner;
     mapping(address => uint) private ownerToLatestMon;
 
-    constructor(DumbRandom dumbRandom, MonBaseStats baseStats, Moves moves) ERC721("MonNFT", "NFT") {
+    constructor(DumbRandom dumbRandom,
+                MonBaseStats baseStats,
+                Moves moves,
+                MonCoin monCoin)
+        ERC721("MonNFT", "NFT") {
         _dumbRandom = dumbRandom;
         _baseStats = baseStats;
         _moves = moves;
+        _monCoin = monCoin;
     }
 
     modifier onlyBattle {
@@ -64,6 +71,26 @@ contract MonNFT is ERC721URIStorage, Ownable {
         } else {
             idToHP[id] = 0;
         }
+    }
+
+    function cloneMon(uint id)
+        public onlyBattle
+        returns (uint)
+    {
+        _tokenIds.increment();
+        uint256 newId = _tokenIds.current();
+        idToSpecies[newId] = idToSpecies[id];
+        idToLevel[newId] = idToLevel[id];
+        idToNature[newId] = idToNature[id];
+        idToGender[newId] = idToGender[id];
+        idToExp[newId] = idToExp[id];
+        idToHP[newId] = idToHP[id];
+        idToPP[newId] = idToPP[id];
+        idToMoveset[newId] = idToMoveset[id];
+        idToIV[newId] = idToIV[id];
+        idToEV[newId] = idToEV[id];
+        idToStats[newId] = idToStats[id];
+        return newId;
     }
 
     function incrementExp(uint id, uint amount)
@@ -122,6 +149,7 @@ contract MonNFT is ERC721URIStorage, Ownable {
     {
         console.log("NOTIMPLEMENTEDWARNING: shouldn't call this, should instead make a mintStarterMon or something");
         console.log("NOTIMPLEMENTEDWARNING: should only be able to be called once per address");
+        _monCoin.starterCoins(recipient);
         uint randomNumber = _dumbRandom.getRandom();
         uint[4] memory moveset = [move0, move1, move2, move3];
         return mintMon(recipient, randomNumber, speciesId, level, moveset);

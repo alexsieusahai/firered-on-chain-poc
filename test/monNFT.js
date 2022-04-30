@@ -1,50 +1,23 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { deployContracts, monSetup, setupUsers } = require("./common_setup.js");
 
 describe("MonNFT", function () {
     it("wild encounter mint example", async function () {
-        const DumbRandom = await ethers.getContractFactory("DumbRandom");
-        const dumbRandom = await DumbRandom.deploy();
-        await dumbRandom.deployed();
+        await deployContracts(this);
+        await monSetup(this);
+        await setupUsers(this);
 
-        const MonBaseStats = await ethers.getContractFactory("MonBaseStats");
-        const monBaseStats = await MonBaseStats.deploy();
-        await monBaseStats.deployed();
-
-        const Moves = await ethers.getContractFactory("Moves");
-        const moves = await Moves.deploy();
-        await monBaseStats.deployed();
-
-        const MonNFT = await ethers.getContractFactory("MonNFT");
-        const monNFT = await MonNFT.deploy(dumbRandom.address, monBaseStats.address, moves.address);
-        await monNFT.deployed();
-
-        const [deployer] = await ethers.getSigners();
-
-        var id = await monNFT.mintWildMon(deployer.address, 0);
+        var id = await this.monNFT.mintWildMon(this.user0.address, 0);
     });
 
     it("bulbasaur mint example", async function () {
-        const DumbRandom = await ethers.getContractFactory("DumbRandom");
-        const dumbRandom = await DumbRandom.deploy();
-        await dumbRandom.deployed();
+        await deployContracts(this);
+        await monSetup(this);
+        await setupUsers(this);
 
-        const MonBaseStats = await ethers.getContractFactory("MonBaseStats");
-        const monBaseStats = await MonBaseStats.deploy();
-        await monBaseStats.deployed();
-
-        const Moves = await ethers.getContractFactory("Moves");
-        const moves = await Moves.deploy();
-        await monBaseStats.deployed();
-
-        const MonNFT = await ethers.getContractFactory("MonNFT");
-        const monNFT = await MonNFT.deploy(dumbRandom.address, monBaseStats.address, moves.address);
-        await monNFT.deployed();
-
-        const [deployer] = await ethers.getSigners();
-
-        monBaseStats.setStats(1, 4500, 4900, 4900, 6500, 6500, 4500);
-        var id = await monNFT.mintSpeciesMon(deployer.address, 1, 5, 1, 0, 0, 0);
-        var mon = await monNFT.idToSpecies(1);
+        this.monBaseStats.setStats(1, 4500, 4900, 4900, 6500, 6500, 4500);
+        await this.monNFT.mintSpeciesMon(this.user0.address, 1, 5, 1, 0, 0, 0);
+        await this.monNFT.idToSpecies(1);
     });
 });

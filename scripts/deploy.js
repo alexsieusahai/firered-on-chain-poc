@@ -148,6 +148,12 @@ class Deploy {
         await this.monManager.setPartyMember(0, 1);
     }
 
+    async setupNPCMons() {
+        // we can use mintSpeciesMon for now, and give Battle.sol the mons
+        await this.monManager.mintSpeciesMon(this.battle.address, 1, 3, 1, 0, 0, 0);
+
+    }
+
     async deploy() {
         if (network.name === "hardhat") {
             console.warn("deploying to hardhat network; nothing will persist...");
@@ -159,6 +165,7 @@ class Deploy {
         await this.setMoves();
         await this.setTypeChart();
         await this.setupUser();
+        await this.setupNPCMons();
 
         fs.writeFileSync(
             __dirname + "/../contracts.json",
