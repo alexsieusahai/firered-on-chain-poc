@@ -21,5 +21,7 @@ library MonLib {
         uint[4] movesetTypes;
         uint[4] currentPP;
         uint[4] maxPP;
+        uint currentExp;
+        uint levelRequirement;
     }
 }

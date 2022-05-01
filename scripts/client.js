@@ -53,8 +53,10 @@ class Overworld extends Phaser.Scene {
         });
         this.socket.emit('random', '');
 
-        // console.warn('DEBUG wild encounter');
-        // this.socket.emit('wildEncounter', '');
+        this.socket.on('signerAddressAck', () => {
+            console.warn('DEBUG wild encounter');
+            this.socket.emit('wildEncounter', '');
+        });
 
         this.timer = new Timer();
         this.load.image("tiles_" + this.tileset_name, "../assets/tilesets/" + this.tileset_name + ".png");

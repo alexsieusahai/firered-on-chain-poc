@@ -45,14 +45,12 @@ class Chain {
     }
 
     async getWildMon() {
-        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         const tx = await this.contracts["MonNFT"].mintWildMon(this.signerAddress, 0);
         await tx.wait();
         await this.contracts["Battle"].connect(hhAcc10Signer).startBattleWild(this.signerAddress);
     }
 
     async getParty() {
-        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         var party = await this.contracts["MonManager"].getParty(this.signerAddress);
         return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }

@@ -73,7 +73,9 @@ contract MonManager is Ownable, ServerOwnable {
                                  _monNFT.idToPP(id, 1),
                                  _monNFT.idToPP(id, 2),
                                  _monNFT.idToPP(id, 3)],
-                                maxPParr
+                                maxPParr,
+                                _monNFT.idToExp(id),
+                                _monNFT.levelRequirement(id)
                                 );
     }
 

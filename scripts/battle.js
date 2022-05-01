@@ -19,6 +19,8 @@ function makeMonObject(monArray) {
         "movesetTypes": monArray[6].map(convert),
         "currentPP": monArray[7].map(convert),
         "maxPP": monArray[8].map(convert),
+        "currentExp": convert(monArray[9]),
+        "levelRequirement": convert(monArray[10])
     };
 }
 
@@ -81,6 +83,32 @@ function playerMonTextbox(scene, mon) {
         fixedWidth: constants.width * 1/3
     })
         .start(content, 0);
+
+    // // draw exp bar
+    console.log('should be drawing exp bar...');
+    // scene.graphics.fillStyle(0x000000, 1);
+    // scene.graphics.fillRoundedRect(100, 100, 100, 100, 8);
+    graphics = scene.add.graphics();
+
+    //  32px radius on the corners
+    console.log("mon currentExp", mon['currentExp']);
+    console.log('mon levelRequirement', mon['levelRequirement']);
+    graphics.fillStyle(0x7E879C, 1);
+    var expBarWidth = constants.width * 1/3 - 10;
+    graphics.fillRoundedRect(constants.width * 2/3,
+                             151,
+                             expBarWidth,
+                             3,
+                             2);
+
+    mon['currentExp'] += 20;
+    graphics.fillStyle(0x52B9FF, 1);
+    graphics.fillRoundedRect(
+        constants.width * 2/3,
+        151,
+        expBarWidth * (mon['currentExp'] / mon['levelRequirement']),
+        3,
+        2);
 }
 
 function enemyMonTextbox(scene, mon) {
@@ -96,6 +124,7 @@ function enemyMonTextbox(scene, mon) {
 }
 
 var timer;
+var graphics;
 export class Battle extends Phaser.Scene {
 
     constructor() {
@@ -128,7 +157,6 @@ export class Battle extends Phaser.Scene {
 
             if (!data['inBattle']) {
                 // if battle done, transition back to overworld
-                console.log("jump back to overworld scene");
                 this.scene.stop('Battle');
                 this.scene.wake(this.previousSceneKey);
             }

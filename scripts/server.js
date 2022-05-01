@@ -41,6 +41,7 @@ function preload() {
         socket.on('signerAddress', address => {
             console.log('obtained signerAddress', address);
             chain.setSignerAddress(address);
+            socket.emit('signerAddressAck');
         });
 
         socket.on('random', (_) => {
@@ -72,10 +73,6 @@ function preload() {
             chain.battleIngestAction(data['action'], data['slot']).then( () => {
                 socket.emit('battleIngestActionCompleted');
             });
-        });
-
-        socket.on('signer', data => {
-            console.log('signer', data);
         });
     });
 }
