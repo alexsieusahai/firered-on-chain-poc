@@ -60,7 +60,13 @@ contract Moves is Ownable {
         typeMultiplier[type0][type1] = multiplier;
     }
 
-    function addInfo(string memory name, uint moveType, bool isPhysical, uint power, uint accuracy, uint pp, bool makesContact)
+    function addInfo(string memory name,
+                     uint moveType,
+                     bool isPhysical,
+                     uint power,
+                     uint accuracy,
+                     uint pp,
+                     bool makesContact)
         public onlyOwner
     {
         _moveIds.increment();

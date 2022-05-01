@@ -5,6 +5,49 @@ var hhProvider = new ethers.providers.WebSocketProvider("http://127.0.0.1:8545")
 // this is hardhat acc #10 on localhost
 const serverSigner = new ethers.Wallet('0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', hhProvider);
 
+// https://github.com/filipekiss/pokemon-type-chart/blob/master/types.json#L8
+function nameToId(name) {
+    switch(name) {
+    case "Normal":
+        return 0;
+    case "Fire":
+        return 1;
+    case "Water":
+        return 2;
+    case "Grass":
+        return 3;
+    case "Electric":
+        return 4;
+    case "Ice":
+        return 5;
+    case "Fighting":
+        return 6;
+    case "Poison":
+        return 7;
+    case "Ground":
+        return 8;
+    case "Flying":
+        return 9;
+    case "Psychic":
+        return 10;
+    case "Bug":
+        return 11;
+    case "Rock":
+        return 12;
+    case "Ghost":
+        return 13;
+    case "Dragon":
+        return 14;
+    case "Dark":
+        return 15;
+    case "Steel":
+        return 16;
+    default:
+        console.warn("nameToId is returning an unsupported value; name passed in was", name);
+        return 0;
+    }
+}
+
 class Deploy {
     constructor() {
         this.contracts = {};
@@ -81,53 +124,21 @@ class Deploy {
     }
 
     async setMoves() {
-        await this.moves.addInfo("Tackle", 0, true, 40, 100, 35, true);
+        var movesJson = JSON.parse(fs.readFileSync(__dirname + "/../data/moves.json"));
+        for (var i in movesJson) {
+            var move = movesJson[i];
+            await this.moves.addInfo(move[0],
+                                     nameToId(move[1]),
+                                     move[2],
+                                     move[4],
+                                     move[5],
+                                     move[3],
+                                     true);
+        }
         console.log('added moves!');
     }
 
     async setTypeChart() {
-        // https://github.com/filipekiss/pokemon-type-chart/blob/master/types.json#L8
-        function nameToId(name) {
-            switch(name) {
-            case "Normal":
-                return 0;
-            case "Fire":
-                return 1;
-            case "Water":
-                return 2;
-            case "Grass":
-                return 3;
-            case "Electric":
-                return 4;
-            case "Ice":
-                return 5;
-            case "Fighting":
-                return 6;
-            case "Poison":
-                return 7;
-            case "Ground":
-                return 8;
-            case "Flying":
-                return 9;
-            case "Psychic":
-                return 10;
-            case "Bug":
-                return 11;
-            case "Rock":
-                return 12;
-            case "Ghost":
-                return 13;
-            case "Dragon":
-                return 14;
-            case "Dark":
-                return 15;
-            case "Steel":
-                return 16;
-            default:
-                console.warn("nameToId is returning an unsupported value");
-                return 0;
-            }
-        }
         var typeChartJson = JSON.parse(fs.readFileSync(__dirname + "/types.json"));
         var type0, type1;
         for (var i in typeChartJson)
@@ -153,7 +164,6 @@ class Deploy {
     async setupExpTable() {
         var expTableJson = JSON.parse(fs.readFileSync(__dirname + "/../data/exp.json"));
         for (var i in expTableJson) {
-            console.log('added', i, 'to exp table');
             await this.battle.addSpeciesIdToExp(i, expTableJson[i]);
         }
         console.log('setup exp table!');
@@ -162,7 +172,6 @@ class Deploy {
     async setupEVTable() {
         var evTableJson = JSON.parse(fs.readFileSync(__dirname + "/../data/ev.json"));
         for (var i in evTableJson) {
-            console.log('added', i, 'to ev table');
             await this.battle.addSpeciesIdToEV(i, evTableJson[i]);
         }
         console.log('setup ev table!');
