@@ -106,12 +106,30 @@ contract MonNFT is ERC721URIStorage, Ownable {
     function incrementEV(uint id, uint hp, uint atk, uint def, uint spatk, uint spdef, uint speed)
         public onlyBattle
     {
-        idToEV[id].hp += hp;
-        idToEV[id].atk += atk;
-        idToEV[id].def += def;
-        idToEV[id].spatk += spatk;
-        idToEV[id].spdef += spdef;
-        idToEV[id].speed += speed;
+        if (idToEV[id].hp + hp < 256)
+            {
+                idToEV[id].hp += hp;
+            }
+        if (idToEV[id].atk + atk < 256)
+            {
+                idToEV[id].atk += atk;
+            }
+        if (idToEV[id].def + def < 256)
+            {
+                idToEV[id].def += def;
+            }
+        if (idToEV[id].spatk + spatk < 256)
+            {
+                idToEV[id].spatk += spatk;
+            }
+        if (idToEV[id].spdef + spdef < 256)
+            {
+                idToEV[id].spdef += spdef;
+            }
+        if (idToEV[id].speed + speed < 256)
+            {
+                idToEV[id].speed += speed;
+            }
     }
 
     function levelRequirement(uint id)

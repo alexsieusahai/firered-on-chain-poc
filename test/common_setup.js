@@ -57,6 +57,9 @@ async function monSetup(testObj) {
     await testObj.monTypes.deployed();
     await testObj.monTypes.addSpecies(1, [3]);
     await testObj.monTypes.addSpecies(16, [0, 9]);
+    await testObj.battle.addSpeciesIdToExp(1, 50); // bulbasaur base exp is 50
+    await testObj.battle.addSpeciesIdToExp(16, 50); // pidgey base exp is 50
+    await testObj.battle.addSpeciesIdToEV(16, [0, 0, 0, 0, 0, 1]);
 }
 
 async function setupUsers(testObj) {

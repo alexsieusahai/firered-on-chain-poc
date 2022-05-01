@@ -2,7 +2,8 @@ const { ethers } = require("hardhat");
 const fs = require('fs');
 
 var hhProvider = new ethers.providers.WebSocketProvider("http://127.0.0.1:8545");
-const hhAcc10Signer = new ethers.Wallet('0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', hhProvider);
+// this is hardhat acc #10 on localhost
+const serverSigner = new ethers.Wallet('0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', hhProvider);
 
 class Deploy {
     constructor() {
@@ -53,7 +54,8 @@ class Deploy {
                                            this.monCoin.address);
         await this.battle.deployed();
 
-        await this.battle.addServerAddress(hhAcc10Signer.address);
+        await this.battle.addServerAddress(serverSigner.address);
+        await this.monManager.addServerAddress(serverSigner.address);
         await this.monCoin.setMonNFTAddress(this.monNFT.address);
         await this.monCoin.setBattleAddress(this.battle.address);
         await this.monNFT.setBattleAddress(this.battle.address);
@@ -148,6 +150,24 @@ class Deploy {
         console.log("setup type chart!");
     }
 
+    async setupExpTable() {
+        var expTableJson = JSON.parse(fs.readFileSync(__dirname + "/../data/exp.json"));
+        for (var i in expTableJson) {
+            console.log('added', i, 'to exp table');
+            await this.battle.addSpeciesIdToExp(i, expTableJson[i]);
+        }
+        console.log('setup exp table!');
+    }
+
+    async setupEVTable() {
+        var evTableJson = JSON.parse(fs.readFileSync(__dirname + "/../data/ev.json"));
+        for (var i in evTableJson) {
+            console.log('added', i, 'to ev table');
+            await this.battle.addSpeciesIdToEV(i, evTableJson[i]);
+        }
+        console.log('setup ev table!');
+    }
+
     async setupUser() {
         [this.user] = await ethers.getSigners();
 
@@ -160,7 +180,7 @@ class Deploy {
 
         // mint a bulbasaur for the user and put it into user's party in first slot
         await this.monNFT.mintSpeciesMon(this.user.address, 1, 5, 1, 0, 0, 0);
-        await this.monManager.setPartyMember(0, 1);
+        await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 0, 1);
         console.log('setup user!');
     }
 
@@ -181,6 +201,8 @@ class Deploy {
         await this.setTypeChart();
         await this.setupUser();
         await this.setupNPCMons();
+        await this.setupExpTable();
+        await this.setupEVTable();
 
         fs.writeFileSync(
             __dirname + "/../contracts.json",

@@ -28,6 +28,8 @@ contract Battle is Ownable, ServerOwnable {
     mapping(address => uint) aiAction;
     mapping(address => uint) aiSlot;
     mapping(address => uint) coinReward;
+    mapping(uint => uint) speciesIdToExp;
+    mapping(uint => uint[]) speciesIdToEV;
     MonNFT _monNFT;
     MonManager _monManager;
     Moves _moves;
@@ -44,6 +46,17 @@ contract Battle is Ownable, ServerOwnable {
         _moves = moves;
         _monTypes = monTypes;
         _monCoin = monCoin;
+    }
+
+    function addSpeciesIdToExp(uint speciesId, uint exp)
+    public onlyOwner {
+        speciesIdToExp[speciesId] = exp;
+    }
+
+    function addSpeciesIdToEV(uint speciesId, uint[] memory evs)
+        public onlyOwner {
+        require(evs.length == 6, "EVs passed in are not of the correct size, should be 6 EVs");
+        speciesIdToEV[speciesId] = evs;
     }
 
     function startBattleHuman(address opp) public {
@@ -134,8 +147,6 @@ contract Battle is Ownable, ServerOwnable {
     }
 
     function finishBattle(address addr) private {
-        // https://bulbapedia.bulbagarden.net/wiki/Experience#Experience_gain_in_battle
-
         _monCoin.postBattleCoins(addr, coinReward[addr]);
         coinReward[addr] = 0;
 
@@ -150,13 +161,14 @@ contract Battle is Ownable, ServerOwnable {
         private
     {
         // ev gain
-        console.log("NOTIMPLEMENTEDWARNING: ev table lookup needed");
-        _monNFT.incrementEV(attackerId, 0, 0, 0, 0, 0, 1);
+        uint[] memory evs = speciesIdToEV[_monNFT.idToSpecies(defenderId)];
+        require(evs.length == 6, "The species corresponding to defenderId has not been added to the EV table.");
+        _monNFT.incrementEV(attackerId, evs[0], evs[1], evs[2], evs[3], evs[4], evs[5]);
 
         // exp gain
         console.log("NOTIMPLEMENTEDWARNING: trainer mons should hand out more exp");
-        console.log("NOTIMPLEMENTEDWARNING: base experience table lookup needed");
-        uint baseExp = 50; // pidgey default
+        uint baseExp = speciesIdToExp[_monNFT.idToSpecies(defenderId)];
+        require(baseExp > 0, "The species corresponding to defenderId has not been added to the Exp table.");
         uint wildMultiplier = 10;
         uint deltaExp = baseExp * wildMultiplier * _monNFT.idToLevel(defenderId) / 70;
         _monNFT.incrementExp(attackerId, deltaExp);
