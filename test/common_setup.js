@@ -32,6 +32,11 @@ async function deployContracts(testObj) {
 
     const MonTypes = await ethers.getContractFactory("MonTypes");
     testObj.monTypes = await MonTypes.deploy(testObj.moves.address);
+    await testObj.monTypes.deployed();
+
+    const Item = await ethers.getContractFactory("Item");
+    testObj.item = await Item.deploy(testObj.monNFT.address, testObj.monManager.address);
+    await testObj.item.deployed();
 
     const Battle = await ethers.getContractFactory("Battle");
     testObj.battle = await Battle.deploy(
@@ -39,15 +44,23 @@ async function deployContracts(testObj) {
         testObj.monManager.address,
         testObj.moves.address,
         testObj.monTypes.address,
-        testObj.monCoin.address);
+        testObj.monCoin.address,
+        testObj.item.address);
     await testObj.battle.deployed();
 
+    await testObj.item.addServerAddress(testObj.user0.address);
+
     await testObj.battle.addServerAddress(testObj.user0.address);
+
     await testObj.monManager.addServerAddress(testObj.user0.address);
+
     await testObj.monNFT.setBattleAddress(testObj.battle.address);
+    await testObj.monNFT.setItemAddress(testObj.item.address);
+
     await testObj.monManager.setBattleAddress(testObj.battle.address);
-    await testObj.monCoin.setMonNFTAddress(testObj.monNFT.address);
+
     await testObj.monCoin.setBattleAddress(testObj.battle.address);
+    await testObj.monCoin.setMonNFTAddress(testObj.monNFT.address);
 }
 
 async function monSetup(testObj) {

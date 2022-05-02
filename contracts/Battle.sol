@@ -6,6 +6,7 @@ import "./Constants.sol";
 import "./MonTypes.sol";
 import "./MonCoin.sol";
 import "./ServerOwnable.sol";
+import "./Item.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -35,17 +36,20 @@ contract Battle is Ownable, ServerOwnable {
     Moves _moves;
     MonTypes _monTypes;
     MonCoin _monCoin;
+    Item _item;
 
     constructor(MonNFT monNFT,
                 MonManager monManager,
                 Moves moves,
                 MonTypes monTypes,
-                MonCoin monCoin) {
+                MonCoin monCoin,
+                Item item) {
         _monNFT = monNFT;
         _monManager = monManager;
         _moves = moves;
         _monTypes = monTypes;
         _monCoin = monCoin;
+        _item = item;
     }
 
     function addSpeciesIdToExp(uint speciesId, uint exp)

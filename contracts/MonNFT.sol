@@ -7,6 +7,7 @@ import "./MonLib.sol";
 import "./MonBaseStats.sol";
 import "./Moves.sol";
 import "./MonCoin.sol";
+import "./ServerOwnable.sol";
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -14,7 +15,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract MonNFT is ERC721URIStorage, Ownable {
+contract MonNFT is ERC721URIStorage, Ownable, ServerOwnable {
     /*
      This handles the creation of new mons.
      */
@@ -25,6 +26,7 @@ contract MonNFT is ERC721URIStorage, Ownable {
     Moves private _moves;
     MonCoin private _monCoin;
     address private _battleAddress;
+    address private _itemAddress;
 
     mapping(uint => uint) public idToSpecies;
     mapping(uint => uint) public idToLevel;
@@ -37,7 +39,6 @@ contract MonNFT is ERC721URIStorage, Ownable {
     mapping(uint => MonLib.Stats) public idToIV;
     mapping(uint => MonLib.Stats) public idToEV;
     mapping(uint => MonLib.Stats) public idToStats;
-
     mapping(uint => address) public idToOwner;
     mapping(address => uint) private ownerToLatestMon;
 
@@ -63,13 +64,34 @@ contract MonNFT is ERC721URIStorage, Ownable {
         _battleAddress = addr;
     }
 
+    function setItemAddress(address addr)
+        public onlyOwner
+    {
+        _itemAddress = addr;
+    }
+
     function deductHP(uint id, uint amount)
         public onlyBattle
     {
         if (amount <= idToHP[id]) {
-            idToHP[id] = idToHP[id] - amount;
+            idToHP[id] -= amount;
         } else {
             idToHP[id] = 0;
+        }
+    }
+
+    function increaseHP(uint id, uint amount)
+        public onlyServerOr2(_itemAddress, _battleAddress) {
+        /*
+          Server needs access to this for mon centers
+          Battle needs access to this for any healing moves
+          Item needs access to this for healing items
+         */
+        console.log("NOTIMPLEMENTEDWARNING: increaseHP should only be able to be called by Battle or server");
+        if (idToHP[id] + amount > idToStats[id].hp) {
+            idToHP[id] = idToStats[id].hp;
+        } else {
+            idToHP[id] += amount;
         }
     }
 
@@ -190,11 +212,11 @@ contract MonNFT is ERC721URIStorage, Ownable {
 
     function mintMon(address recipient, uint randomNumber, uint speciesId, uint level, uint[4] memory moveset)
         public onlyOwner
-        returns (uint256)
+        returns (uint)
     {
         _tokenIds.increment();
 
-        uint256 newItemId = _tokenIds.current();
+        uint newItemId = _tokenIds.current();
         _mint(recipient, newItemId);
 
         // TODO we can just set this to the mon portrait IPFS file

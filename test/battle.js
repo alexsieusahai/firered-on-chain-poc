@@ -25,6 +25,31 @@ describe("Battle", function () {
         expect(await this.battle.inBattle(this.user0.address)).to.equal(false);
     });
 
+    it("potion", async function () {
+        await setupUsers(this);
+        await deployContracts(this);
+        await monSetup(this);
+
+        // give user0 bulbasaur
+        await this.monNFT.mintSpeciesMon(this.user0.address, 1, 5, 1, 0, 0, 0);
+        await this.monManager.connect(this.user0).setPartyMember(this.user0.address, 0, 1);
+
+        // spawn a pidgey
+        const tx = await this.monNFT.mintWildMon(this.user0.address, 0);
+        await tx.wait();
+        await this.battle.startBattleWild(this.user0.address);
+        await this.battle.ingestAction(this.user0.address, 1, 0); // my bulbasaur uses its move in slot 0
+        await this.battle.ingestAction(this.user0.address, 1, 0);
+        await this.battle.ingestAction(this.user0.address, 1, 0);
+        expect(await this.battle.inBattle(this.user0.address)).to.equal(false);
+        const hpBefore = (await this.monNFT.idToHP(1)).toNumber();
+        await this.item.giveItem(this.user0.address, 1, 1);
+        await this.item.useItem(this.user0.address, 1, 1);
+        const hpAfter = (await this.monNFT.idToHP(1)).toNumber();
+        expect(hpBefore).to.be.lt(hpAfter);
+    });
+
+
     it("swap mon example", async function () {
         await setupUsers(this);
         await deployContracts(this);
