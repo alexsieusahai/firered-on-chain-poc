@@ -100,8 +100,6 @@ function playerMonTextbox(scene, mon) {
                              expBarWidth,
                              3,
                              2);
-
-    mon['currentExp'] += 20;
     graphics.fillStyle(0x52B9FF, 1);
     graphics.fillRoundedRect(
         constants.width * 2/3,

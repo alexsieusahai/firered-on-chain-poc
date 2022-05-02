@@ -1,21 +1,38 @@
 import { Timer } from './timer.js';
 import { Constants } from './constants.js';
 import { Battle } from './battle.js';
+import { Player } from './consumers/player.js';
+import { Dialog } from './consumers/dialog.js';
+import { Menu } from './consumers/menu.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
-
-const COLOR_PRIMARY = 0x4e342e;
-const COLOR_LIGHT = 0x7b5e57;
-const COLOR_DARK = 0x260e04;
 
 var constants = new Constants();
 var timer;
 let cursors;
 let controls;
 let player;
-let prevTile;
 let facingCoords;
-let currentTextBox;
+let currentMenu;
+let consumers;
 let socket = io('http://localhost:3000');
+let signerAddressAck = false;
+
+function makeMenu(scene) {
+    var graphics = scene.add.graphics();
+    let rect = scene.add.rectangle(60, constants.height - 145, 70, constants.height - 140, constants.COLOR_PRIMARY);
+    rect.setScrollFactor(0, 0);
+    console.warn('menu needs to consider scene.menuSelection');
+    var textBox = scene.rexUI.add.textBox({
+        x: 35,
+        y: 80,
+        text: getBBcodeText(scene, 50, 50, 50),
+    })
+        .setOrigin(0, 1)
+        .layout()
+        .start(' MONS\n BAG\n TRAINER\n OPTION\n EXIT', 0);
+    textBox.setScrollFactor(0, 0);
+    return {'rect' : rect, 'textBox' : textBox, 'currentSelection' : 0};
+}
 
 class Overworld extends Phaser.Scene {
     constructor(config) {
@@ -54,17 +71,21 @@ class Overworld extends Phaser.Scene {
         this.socket.emit('random', '');
 
         this.socket.on('signerAddressAck', () => {
-            console.warn('DEBUG wild encounter');
-            this.socket.emit('wildEncounter', '');
+            console.log('signer address acknowledged by server...');
+            signerAddressAck = true;
+            // console.warn('DEBUG wild encounter');
+            // this.socket.emit('wildEncounter', '');
         });
 
         this.timer = new Timer();
         this.load.image("tiles_" + this.tileset_name, "../assets/tilesets/" + this.tileset_name + ".png");
         this.load.tilemapTiledJSON("map_" + this.tileset_name, "../assets/tilesets/" + this.tilemap_name + ".json");
         this.load.atlas("atlas", "../assets/atlas/atlas.png", "../assets/atlas/atlas.json");
+        consumers = [];
     }
 
     create(config) {
+        this.menuSelection = 0;
         this.map = this.make.tilemap({ key : "map_" + this.tileset_name });
         this.tileset = this.map.addTilesetImage(this.tileset_name, "tiles_" + this.tileset_name);
 
@@ -91,157 +112,71 @@ class Overworld extends Phaser.Scene {
                 tileAtObj.properties['to'] = obj.properties[0]['value'];
         }
 
-        const spawnPoint = this.map.findObject("MapMovement", obj => obj.name === "SpawnPoint");
-        console.log("spawnPoint is", spawnPoint);
-        player = this.physics.add
-            .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-back")
-            .setSize(30, 40)
-            .setDisplaySize(20, 30)
-            .setOffset(0, 24);
-        this.player = player;
-        this.physics.add.collider(player, worldLayer);
-
-        const anims = this.anims;
-        anims.create({
-            key: "misa-left-walk",
-            frames: anims.generateFrameNames("atlas", {
-                prefix: "misa-left-walk.",
-                start: 0,
-                end: 3,
-                zeroPad: 3,
-            }),
-            frameRate: 10,
-            repeat: -1,
-        });
-        anims.create({
-            key: "misa-right-walk",
-            frames: anims.generateFrameNames("atlas", {
-                prefix: "misa-right-walk.",
-                start: 0,
-                end: 3,
-                zeroPad: 3,
-            }),
-            frameRate: 10,
-            repeat: -1,
-        });
-        anims.create({
-            key: "misa-front-walk",
-            frames: anims.generateFrameNames("atlas", {
-                prefix: "misa-front-walk.",
-                start: 0,
-                end: 3,
-                zeroPad: 3,
-            }),
-            frameRate: 10,
-            repeat: -1,
-        });
-        anims.create({
-            key: "misa-back-walk",
-            frames: anims.generateFrameNames("atlas", {
-                prefix: "misa-back-walk.",
-                start: 0,
-                end: 3,
-                zeroPad: 3,
-            }),
-            frameRate: 10,
-            repeat: -1,
-        });
+        this.dialog = new Dialog(this);
+        this.menu = new Menu(this);
+        this.player = new Player(this, worldLayer, this.dialog, this.menu);
+        consumers.push(this.player);
+        consumers.push(this.dialog);
+        consumers.push(this.menu);
 
         const camera = this.cameras.main;
-        camera.startFollow(player);
+        camera.startFollow(this.player.sprite);
         camera.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
-        this.up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-        this.left = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        this.down = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-        this.right = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+        this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         this.keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+        this.keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     }
 
     update(time, delta) {
-        const speed = 175;
-        const prevVelocity = player.body.velocity.clone();
+        var keyboardConsumer = undefined;
+        for (var i in consumers) {
+            consumers[i].beforeConsume();
+            if (consumers[i].isActive()) keyboardConsumer = consumers[i];
+        }
 
-        // + 8 magic - we want the tile relative to the player's head, this is a proxy for that
-        var currentTile =  this.map.getTileAtWorldXY(player.x, player.y + 8);
-        if (typeof prevTile === 'undefined' || currentTile.index !== prevTile.index) {
-            // on new tile
-            if (currentTile.properties['tallGrass']
+        if (typeof this.player.prevTile === 'undefined' || this.player.currentTile.index !== this.player.prevTile.index) {
+            if (this.player.currentTile.properties['tallGrass']
                 && typeof this.prng !== 'undefined'
-                && this.prng() < constants.wildEncounterChance) {
+                && this.prng() < constants.wildEncounterChance
+                && signerAddressAck) {
                 this.socket.emit('wildEncounter', '');
             }
-            if (currentTile.properties['to']) {
-                console.log('go to world', currentTile.properties['to']);
+            if (this.player.currentTile.properties['to']) {
+                console.log('go to world', this.player.currentTile.properties['to']);
                 this.scene.add('route_1', Overworld, false, {tileset: 'route_1', tilemap: 'route_1'});
                 this.scene.start('route_1');
             }
-            prevTile = currentTile;
+            this.player.prevTile = this.player.currentTile;
         }
 
-        player.body.setVelocity(0);
-        if (typeof currentTextBox === 'undefined' || !currentTextBox.active) {
-            if (this.left.isDown) {
-                player.body.setVelocityX(-speed);
-                facingCoords = [-1, 0];
-            } else if (this.right.isDown) {
-                player.body.setVelocityX(speed);
-                facingCoords = [1, 0];
-            } else if (this.up.isDown) {
-                player.body.setVelocityY(-speed);
-                facingCoords = [0, -1];
-            } else if (this.down.isDown) {
-                player.body.setVelocityY(speed);
-                facingCoords = [0, 1];
-            }
-            // Update the animations
-            if (this.left.isDown) {
-                player.anims.play("misa-left-walk", true);
-            } else if (this.right.isDown) {
-                player.anims.play("misa-right-walk", true);
-            } else if (this.up.isDown) {
-                player.anims.play("misa-back-walk", true);
-            } else if (this.down.isDown) {
-                player.anims.play("misa-front-walk", true);
-            } else {
-                player.anims.stop();
+        if      (this.keyA.isDown) keyboardConsumer.consumeA();
+        else if (this.keyD.isDown) keyboardConsumer.consumeD();
+        else if (this.keyW.isDown) keyboardConsumer.consumeW();
+        else if (this.keyS.isDown) keyboardConsumer.consumeS();
+        else if (this.keyZ.isDown) keyboardConsumer.consumeZ();
+        else if (this.keyX.isDown) keyboardConsumer.consumeX();
+        else if (this.keyC.isDown) keyboardConsumer.consumeC();
+        else keyboardConsumer.consumeNothing();
 
-                // If we were moving, pick and idle frame to use
-                // use this to remember what direction we are facing
-                if (prevVelocity.x < 0)
-                {
-                    player.setTexture("atlas", "misa-left");
-                }
-                else if (prevVelocity.x > 0)
-                {
-                    player.setTexture("atlas", "misa-right");
-                }
-                else if (prevVelocity.y < 0) {
-                    player.setTexture("atlas", "misa-back");
-                }
-                else if (prevVelocity.y > 0) {
-                    player.setTexture("atlas", "misa-front");
-                }
-            }
+        for (i in consumers) {
+            if (keyboardConsumer !== consumers[i]) consumers[i].consumeNothing();
         }
 
-        // handle interaction
-        if (this.keyZ.isDown && this.timer.timer('movement')) {
-            // if textbox already open, handle interaction
-            // otherwise, spin up textbox
-            var facingTile = this.map.getTileAt(currentTile.x + facingCoords[0], currentTile.y + facingCoords[1]);
-            if (typeof currentTextBox !== 'undefined' && currentTextBox.active) {
-                if (currentTextBox.isTyping) currentTextBox.stop(true);
-                else currentTextBox.isLastPage ? currentTextBox.destroy() : currentTextBox.typeNextPage();
-            } else if (typeof facingTile.properties['message'] !== 'undefined') {
-                currentTextBox = createTextBox(this,
-                                               facingTile.pixelX - 10,
-                                               facingTile.pixelY - 5,
-                                               {wrapWidth: 100, fixedWidth: 100, indent: 8, radius: 8})
-                    .start(facingTile.properties['message'], 5);
-            }
-        }
+        // // handle menu open / close
+        // if (this.keyC.isDown && this.timer.timer('movement')) {
+        //     console.log('opening menu...');
+        //     if (typeof currentMenu === 'undefined') currentMenu = makeMenu(this);
+        //     else {
+        //         currentMenu['rect'].destroy();
+        //         currentMenu['textBox'].destroy();
+        //         currentMenu = undefined;
+        //     }
+        // }
     }
 }
 

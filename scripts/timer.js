@@ -2,6 +2,8 @@ export class Timer {
     constructor() {
         this.cooldowns = {
             'movement' : 100,
+            'dialog' : 100,
+            'menu' : 100,
         };
         this.lastTime = {};
         for (var name in this.cooldowns) {

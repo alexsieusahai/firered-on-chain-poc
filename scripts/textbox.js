@@ -1,9 +1,8 @@
+import { Constants } from './constants.js';
+var constants = new Constants();
+
 // https://rexrainbow.github.io/phaser3-rex-notes/docs/site/ui-textbox/
 // https://codepen.io/rexrainbow/pen/ExZLoWL?editors=0010
-
-const COLOR_PRIMARY = 0xddddeb;
-const COLOR_LIGHT = 0x6f6f8c;
-const COLOR_DARK = 0x3b3b4a;
 
 const GetValue = Phaser.Utils.Objects.GetValue;
 export function createTextBox(scene, x, y, config) {
@@ -15,8 +14,8 @@ export function createTextBox(scene, x, y, config) {
     var textBox = scene.rexUI.add.textBox({
         x: x,
         y: y,
-        background: createSpeechBubbleShape(scene, COLOR_PRIMARY, COLOR_LIGHT, indent, radius),
-        // icon: scene.rexUI.add.roundRectangle(0, 0, 2, 2, 20, COLOR_DARK),
+        background: createSpeechBubbleShape(scene, constants.COLOR_PRIMARY, constants.COLOR_LIGHT, indent, radius),
+        // icon: scene.rexUI.add.roundRectangle(0, 0, 2, 2, 20, constants.COLOR_DARK),
         text: getBBcodeText(scene, wrapWidth, fixedWidth, fixedHeight),
         space: {
             left: 5, right: 5, top: 5, bottom: 10,
@@ -41,7 +40,7 @@ export function getBBcodeText(scene, wrapWidth, fixedWidth, fixedHeight) {
             mode: 'word',
             width: wrapWidth
         },
-        maxLines: 3
+        maxLines: 10
     });
 };
 
