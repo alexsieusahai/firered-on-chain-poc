@@ -56,19 +56,21 @@ class Chain {
     }
 
     async getPartyAI() {
-        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         var party = await this.contracts["MonManager"].getPartyAI(this.signerAddress);
         return {"mons" : party, "names" : party.map(x => speciesIdToName[x.speciesId])};
     }
 
     async battleIngestAction(action, slot) {
-        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         await this.contracts["Battle"].connect(hhAcc10Signer).ingestAction(this.signerAddress, action, slot);
     }
 
     async inBattle() {
-        console.log("NOTIMPLEMENTEDWARNING: ethers.getSigners() used here, should be using metamask in the future...");
         return await this.contracts["Battle"].inBattle(this.signerAddress);
+    }
+
+    async getInventory() {
+        console.log('getting inventory from chain...');
+        return await this.contracts["Item"].getInventory(this.signerAddress);
     }
 }
 

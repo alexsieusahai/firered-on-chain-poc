@@ -3,7 +3,9 @@ import { Constants } from './constants.js';
 import { Battle } from './battle.js';
 import { Player } from './consumers/player.js';
 import { Dialog } from './consumers/dialog.js';
+import { Bag } from './consumers/bag.js';
 import { Menu } from './consumers/menu.js';
+import { MonSwap } from './consumers/monSwap.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
 
 var constants = new Constants();
@@ -31,6 +33,7 @@ function makeMenu(scene) {
         .layout()
         .start(' MONS\n BAG\n TRAINER\n OPTION\n EXIT', 0);
     textBox.setScrollFactor(0, 0);
+
     return {'rect' : rect, 'textBox' : textBox, 'currentSelection' : 0};
 }
 
@@ -57,7 +60,8 @@ class Overworld extends Phaser.Scene {
             sceneKey: 'rexUI'
         });
 
-        // this.socket = io('http://localhost:3000');
+        this.bag = new Bag(this);
+
         this.socket = socket;
         this.socket.on('connect', () => console.log('connected to server! id:', this.socket.id));
         this.socket.on('random', seed => {this.prng = new Math.seedrandom(seed); });
@@ -68,24 +72,29 @@ class Overworld extends Phaser.Scene {
             this.scene.sleep(this.tileset_name);
             this.scene.run('Battle', {socket: this.socket, from: this.tileset_name});
         });
-        this.socket.emit('random', '');
-
         this.socket.on('signerAddressAck', () => {
             console.log('signer address acknowledged by server...');
             signerAddressAck = true;
-            // console.warn('DEBUG wild encounter');
-            // this.socket.emit('wildEncounter', '');
+            this.socket.emit('inventory', '');
         });
+        this.socket.on('inventory', inventory => {
+            for (var i in inventory) inventory[i] = Number(inventory[i].hex);
+            this.bag.ingestInventory(inventory);
+        });
+
+        this.socket.emit('random', '');
 
         this.timer = new Timer();
         this.load.image("tiles_" + this.tileset_name, "../assets/tilesets/" + this.tileset_name + ".png");
         this.load.tilemapTiledJSON("map_" + this.tileset_name, "../assets/tilesets/" + this.tilemap_name + ".json");
         this.load.atlas("atlas", "../assets/atlas/atlas.png", "../assets/atlas/atlas.json");
         consumers = [];
+
+        // debug
+        this.load.image('mon_1_front', 'assets/pokemon/main-sprites/firered-leafgreen/1.png');
     }
 
     create(config) {
-        this.menuSelection = 0;
         this.map = this.make.tilemap({ key : "map_" + this.tileset_name });
         this.tileset = this.map.addTilesetImage(this.tileset_name, "tiles_" + this.tileset_name);
 
@@ -112,16 +121,20 @@ class Overworld extends Phaser.Scene {
                 tileAtObj.properties['to'] = obj.properties[0]['value'];
         }
 
+        worldLayer.setScale(2, 2);
+
         this.dialog = new Dialog(this);
-        this.menu = new Menu(this);
+        this.monSwap = new MonSwap(this);
+        this.menu = new Menu(this, this.bag, this.monSwap);
         this.player = new Player(this, worldLayer, this.dialog, this.menu);
         consumers.push(this.player);
         consumers.push(this.dialog);
         consumers.push(this.menu);
+        consumers.push(this.bag);
 
         const camera = this.cameras.main;
         camera.startFollow(this.player.sprite);
-        camera.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+        camera.setBounds(0, 0, this.map.widthInPixels * 2, this.map.heightInPixels * 2);
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -132,6 +145,21 @@ class Overworld extends Phaser.Scene {
         this.keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     }
 
+    handleNewTile() {
+        if (this.player.currentTile.properties['tallGrass']
+            && typeof this.prng !== 'undefined'
+            && this.prng() < constants.wildEncounterChance
+            && signerAddressAck) {
+            this.socket.emit('wildEncounter', '');
+        }
+        if (this.player.currentTile.properties['to']) {
+            console.log('go to world', this.player.currentTile.properties['to']);
+            this.scene.add('route_1', Overworld, false, {tileset: 'route_1', tilemap: 'route_1'});
+            this.scene.start('route_1');
+        }
+        this.player.prevTile = this.player.currentTile;
+    }
+
     update(time, delta) {
         var keyboardConsumer = undefined;
         for (var i in consumers) {
@@ -140,18 +168,7 @@ class Overworld extends Phaser.Scene {
         }
 
         if (typeof this.player.prevTile === 'undefined' || this.player.currentTile.index !== this.player.prevTile.index) {
-            if (this.player.currentTile.properties['tallGrass']
-                && typeof this.prng !== 'undefined'
-                && this.prng() < constants.wildEncounterChance
-                && signerAddressAck) {
-                this.socket.emit('wildEncounter', '');
-            }
-            if (this.player.currentTile.properties['to']) {
-                console.log('go to world', this.player.currentTile.properties['to']);
-                this.scene.add('route_1', Overworld, false, {tileset: 'route_1', tilemap: 'route_1'});
-                this.scene.start('route_1');
-            }
-            this.player.prevTile = this.player.currentTile;
+            this.handleNewTile();
         }
 
         if      (this.keyA.isDown) keyboardConsumer.consumeA();
@@ -166,17 +183,6 @@ class Overworld extends Phaser.Scene {
         for (i in consumers) {
             if (keyboardConsumer !== consumers[i]) consumers[i].consumeNothing();
         }
-
-        // // handle menu open / close
-        // if (this.keyC.isDown && this.timer.timer('movement')) {
-        //     console.log('opening menu...');
-        //     if (typeof currentMenu === 'undefined') currentMenu = makeMenu(this);
-        //     else {
-        //         currentMenu['rect'].destroy();
-        //         currentMenu['textBox'].destroy();
-        //         currentMenu = undefined;
-        //     }
-        // }
     }
 }
 

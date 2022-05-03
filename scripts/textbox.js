@@ -11,12 +11,19 @@ export function createTextBox(scene, x, y, config) {
     var fixedHeight = GetValue(config, 'fixedHeight', 0);
     var indent = GetValue(config, 'indent', 0);
     var radius = GetValue(config, 'radius', 0);
+    var fontSize = GetValue(config, 'fontSize', '10px');
+    var lineSpacing = GetValue(config, 'lineSpacing', 0);
     var textBox = scene.rexUI.add.textBox({
         x: x,
         y: y,
         background: createSpeechBubbleShape(scene, constants.COLOR_PRIMARY, constants.COLOR_LIGHT, indent, radius),
         // icon: scene.rexUI.add.roundRectangle(0, 0, 2, 2, 20, constants.COLOR_DARK),
-        text: getBBcodeText(scene, wrapWidth, fixedWidth, fixedHeight),
+        text: getBBcodeText(scene,
+                            wrapWidth,
+                            fixedWidth,
+                            fixedHeight,
+                            fontSize,
+                            lineSpacing),
         space: {
             left: 5, right: 5, top: 5, bottom: 10,
         },
@@ -30,11 +37,17 @@ export function createTextBox(scene, x, y, config) {
     return textBox;
 };
 
-export function getBBcodeText(scene, wrapWidth, fixedWidth, fixedHeight) {
+export function getBBcodeText(scene,
+                              wrapWidth,
+                              fixedWidth,
+                              fixedHeight,
+                              fontSize,
+                              lineSpacing) {
     return scene.rexUI.add.BBCodeText(0, 0, '', {
         fixedWidth: fixedWidth,
         fixedHeight: fixedHeight,
-        fontSize: '10px',
+        fontSize: fontSize,
+        lineSpacing: lineSpacing,
         color: '#454545',
         wrap: {
             mode: 'word',

@@ -74,6 +74,10 @@ function preload() {
                 socket.emit('battleIngestActionCompleted');
             });
         });
+
+        socket.on('inventory', () => {
+            chain.getInventory().then( inventory => socket.emit('inventory', inventory) );
+        });
     });
 }
 function create() {}

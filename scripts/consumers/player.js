@@ -13,9 +13,8 @@ export class Player extends Consumer {
         this.facingCoords = [0, 0];
         const spawnPoint = parentScene.map.findObject("MapMovement", obj => obj.name === "SpawnPoint");
         this.sprite = parentScene.physics.add
-            .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-back")
+            .sprite(spawnPoint.x * 2, spawnPoint.y * 2, "atlas", "misa-back")
             .setSize(30, 40)
-            .setDisplaySize(20, 30)
             .setOffset(0, 24);
         parentScene.physics.add.collider(this.sprite, colliderLayer);
         this.setupAnims(parentScene);
@@ -105,8 +104,8 @@ export class Player extends Consumer {
         var facingTile = this.getFacingTile();
         if (typeof facingTile.properties['message'] !== 'undefined' && this.parent.timer.timer('dialog')) {
             this.dialog.textBox = createTextBox(this.parent,
-                                           facingTile.pixelX - 10,
-                                           facingTile.pixelY - 5,
+                                           facingTile.pixelX * 2 - 10,
+                                           facingTile.pixelY * 2 - 5,
                                            {wrapWidth: 100, fixedWidth: 100, indent: 8, radius: 8})
                 .start(facingTile.properties['message'], 5);
         }

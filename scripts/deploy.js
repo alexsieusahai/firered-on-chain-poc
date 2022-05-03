@@ -89,14 +89,20 @@ class Deploy {
         this.monManager = await MonManager.deploy(this.monNFT.address, this.moves.address);
         await this.saveContract("MonManager", this.monManager);
 
+        const Item = await ethers.getContractFactory("Item");
+        this.item = await Item.deploy(this.monNFT.address, this.monManager.address);
+        await this.saveContract("Item", this.item);
+
         const Battle = await ethers.getContractFactory("Battle");
         this.battle = await Battle.deploy(this.monNFT.address,
-                                           this.monManager.address,
-                                           this.moves.address,
-                                           this.monTypes.address,
-                                           this.monCoin.address);
+                                          this.monManager.address,
+                                          this.moves.address,
+                                          this.monTypes.address,
+                                          this.monCoin.address,
+                                          this.item.address);
         await this.battle.deployed();
 
+        await this.item.addServerAddress(serverSigner.address);
         await this.battle.addServerAddress(serverSigner.address);
         await this.monManager.addServerAddress(serverSigner.address);
         await this.monCoin.setMonNFTAddress(this.monNFT.address);
@@ -196,6 +202,13 @@ class Deploy {
     async setupNPCMons() {
         // we can use mintSpeciesMon for now, and give Battle.sol the mons
         await this.monNFT.mintSpeciesMon(this.battle.address, 1, 3, 1, 0, 0, 0);
+        console.log('setup npc mons!');
+    }
+
+    async setupInitialItems() {
+        // initially give 10 potions to user, for testing purposes
+        await this.item.connect(serverSigner).giveItem(this.user.address, 1, 10);
+        console.log('setup initial test items!');
     }
 
     async deploy() {
@@ -212,6 +225,7 @@ class Deploy {
         await this.setupNPCMons();
         await this.setupExpTable();
         await this.setupEVTable();
+        await this.setupInitialItems();
 
         fs.writeFileSync(
             __dirname + "/../contracts.json",
