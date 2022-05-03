@@ -20,15 +20,10 @@ export class OptionTextBox extends Consumer {
             content += (this.current == i ? '*' : ' ') + this.options[i] + '\n';
         }
 
-        this.textBox = createTextBox(this.parent, 35, 180,
-                                     {
-                                         'wrapWidth': 80,
-                                         'fixedWidth': 80,
-                                         'fixedHeight': 80,
-                                         'radius': 8,
-                                         'fontSize': '14px',
-                                         lineSpacing: 3,
-                                     })
+        this.textBox = createTextBox(this.parent,
+                                     this.config['x'],
+                                     this.config['y'],
+                                     this.config)
             .start(content, 0);
     }
 

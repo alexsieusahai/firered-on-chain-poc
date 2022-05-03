@@ -112,7 +112,7 @@ export class Player extends Consumer {
     }
 
     consumeC() {
-        if (this.parent.timer.timer('menu')) this.menu.constructMenu();
+        if (this.parent.timer.timer('menu')) this.menu.construct();
     }
 
     isActive() {
