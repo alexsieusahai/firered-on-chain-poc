@@ -84,6 +84,14 @@ function preload() {
         socket.on('inventory', () => {
             chain.getInventory().then( inventory => socket.emit('inventory', inventory) );
         });
+
+        socket.on('swapPartyMember', (slot0, slot1) => {
+            chain.swapPartyMember(slot0, slot1).then(() => {
+                chain.getParty().then( party => {
+                    socket.emit('getParty', party);
+                });
+            });
+        });
     });
 }
 function create() {}

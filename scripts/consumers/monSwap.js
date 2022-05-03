@@ -9,6 +9,8 @@ const ALT_MON_HEALTH_Y = 35;
 export class MonSwap extends OptionTextBox {
     constructor(parentScene, socket) {
         super(parentScene, [0, 1, 2, 3, 4, 5], {});
+        this.state = 'SELECT';
+        this.socket = socket;
     }
 
     ingestParty(party) {
@@ -42,7 +44,10 @@ export class MonSwap extends OptionTextBox {
 
         graphics.fillStyle(0xadadad, 1);
         var spriteEllipse = graphics.fillEllipse(30, 70, 45, 20);
-        var sprite = this.parent.add.image(30, 50, 'mon_1_front').setScale(1.2);
+        var sprite = this.parent.add.image(30,
+                                           50,
+                                           'mon_' + String(this.party[0]['speciesId']) + '_front')
+            .setScale(1.2);
 
         var health = this.party[0].currentHP / 100;
         var maxHealth = this.party[0].maxHP / 100;
@@ -51,7 +56,6 @@ export class MonSwap extends OptionTextBox {
         graphics.fillStyle(constants.COLOR_DARK, 1);
         var healthBarTotal = graphics.fillRect(60, 65, 120, 8);
         graphics.fillStyle(0x9cfa3e, 1);
-        console.warn('monSwap healthbar should take actual health into account...');
         var healthBar = graphics.fillRect(60, 65, 120 * health / maxHealth, 8);
         var healthText = this.parent.add.text(60,
                                               80,
@@ -82,21 +86,29 @@ export class MonSwap extends OptionTextBox {
         var border = graphics.strokeRoundedRect(0, 0, 200, ALT_MON_RECT_HEIGHT, 8);
 
         if (this.party[i].speciesId != 0) {
-            var name = this.parent.add.text(60, 10, this.partyNames[i], {color:'#454545', fontSize: '18px'});
+            var name = this.parent.add.text(60, 10, this.partyNames[i], {color:'#454545', fontSize: '16px'});
             var levelText = this.parent.add.text(160, 10, 'Lv5', {color:'#454545', fontSize: '14px'});
 
             graphics.fillStyle(0xadadad, 1);
             var spriteEllipse = graphics.fillEllipse(30, 50, 45, 20);
-            var sprite = this.parent.add.image(30, 30, 'mon_1_front').setScale(1.2);
+            var sprite = this.parent.add.image(30,
+                                               30,
+                                               'mon_' + String(this.party[i]['speciesId']) + '_front')
+                .setScale(1.2);
 
             graphics.lineStyle(2, constants.COLOR_DARK);
             var healthBarBorder = graphics.strokeRect(60, ALT_MON_HEALTH_Y, 120, 8);
             graphics.fillStyle(constants.COLOR_DARK, 1);
             var healthBarTotal = graphics.fillRect(60, ALT_MON_HEALTH_Y, 120, 8);
             graphics.fillStyle(0x9cfa3e, 1);
-            console.warn('monSwap healthbar should take actual health into account...');
-            var healthBar = graphics.fillRect(60, ALT_MON_HEALTH_Y, 60, 8);
-            var healthText = this.parent.add.text(100, 50, '12/24 HP', {color:'#454545', fontSize: '16px'});
+
+            var health = this.party[i].currentHP / 100;
+            var maxHealth = this.party[i].maxHP / 100;
+            var healthBar = graphics.fillRect(60, ALT_MON_HEALTH_Y, 120 * health / maxHealth, 8);
+            var healthText = this.parent.add.text(60,
+                                                  50,
+                                                  String(health) + '/' + String(maxHealth) + ' HP',
+                                                  {color:'#454545', fontSize: '16px'});
             altMon.add([
                 rect,
                 spriteEllipse,
@@ -132,6 +144,30 @@ export class MonSwap extends OptionTextBox {
 
     consumeC() {
         if (this.parent.timer.timer('menu')) this.destroy();
+    }
+
+    consumeZ() {
+        // spawn the monSwapOption box, which will handle state transitions and action consumption for monSwap
+        // flow should be
+        // open monSwap -> select mon to swap -> select other mon -> swap mons
+        if (this.parent.timer.timer('menu')) {
+            if (this.state === 'SELECT') {
+                this.monSwapOption.construct();
+            } else if (this.state === 'SWAP') {
+                // do the swap with the selected mons and cleanup
+                console.log('swapping mons', this.selectedMon, this.current);
+                this.socket.emit('swapPartyMember', this.selectedMon, this.current);
+                this.cleanup();
+            } else {
+                console.warn("monSwap currently does not support the current state!");
+            }
+        }
+    }
+
+    cleanup() {
+        this.state = 'SELECT';
+        this.selectedMon = undefined;
+        this.current = 0;
     }
 
     isActive() {

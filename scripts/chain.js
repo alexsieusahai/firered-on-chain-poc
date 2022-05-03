@@ -72,6 +72,12 @@ class Chain {
         console.log('getting inventory from chain...');
         return await this.contracts["Item"].getInventory(this.signerAddress);
     }
+
+    async swapPartyMember(slot0, slot1) {
+        console.log('slot0', slot0, 'slot1', slot1);
+        return await this.contracts["MonManager"].connect(hhAcc10Signer).swapPartyMember(this.signerAddress, slot0, slot1);
+    }
+
 }
 
 module.exports = { Chain };

@@ -24,14 +24,16 @@ export class Menu extends OptionTextBox {
     }
 
     consumeZ() {
-        if (this.options[this.current] === 'BAG') {
+        if (this.parent.timer.timer('menu')) {
+            if (this.options[this.current] === 'BAG') {
+                this.destroy();
+                console.log('spawning bag UI...');
+                this.bag.construct();
+            } else if (this.options[this.current] === 'MONS') {
+                this.destroy();
+                this.monSwap.construct();
+            }
             this.destroy();
-            console.log('spawning bag UI...');
-            this.bag.construct();
-        } else if (this.options[this.current] === 'MONS') {
-            this.destroy();
-            this.monSwap.construct();
         }
-        this.destroy();
     }
 }

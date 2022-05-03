@@ -12,6 +12,10 @@ export class OptionTextBox extends Consumer {
         this.current = 0;
     }
 
+    getCurrentOption() {
+        return this.options[this.current];
+    }
+
     construct() {
         if (typeof this.textBox !== 'undefined' && this.textBox.active) this.textBox.destroy();
 

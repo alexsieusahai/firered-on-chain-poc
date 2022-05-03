@@ -147,7 +147,7 @@ contract MonManager is Ownable, ServerOwnable {
     }
 
     function swapPartyMember(address addr, uint slot0, uint slot1)
-        public onlyBattle
+        public onlyServerOr(_battleAddress)
     {
         uint id0 = addressToParty[addr][slot0];
         uint id1 = addressToParty[addr][slot1];

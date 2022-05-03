@@ -193,9 +193,13 @@ class Deploy {
         // for how to do this with alchemy
         // for now, just use dumbrandom
 
-        // mint a bulbasaur for the user and put it into user's party in first slot
+        // mint starters for the user
         await this.monNFT.mintSpeciesMon(this.user.address, 1, 5, 1, 0, 0, 0);
+        await this.monNFT.mintSpeciesMon(this.user.address, 4, 5, 1, 0, 0, 0);
+        await this.monNFT.mintSpeciesMon(this.user.address, 7, 5, 1, 0, 0, 0);
         await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 0, 1);
+        await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 1, 2);
+        await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 2, 3);
         console.log('setup user!');
     }
 

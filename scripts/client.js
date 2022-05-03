@@ -6,6 +6,7 @@ import { Dialog } from './consumers/dialog.js';
 import { Bag } from './consumers/bag.js';
 import { Menu } from './consumers/menu.js';
 import { MonSwap } from './consumers/monSwap.js';
+import { MonSwapOption } from './consumers/monSwapOption.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
 
 var constants = new Constants();
@@ -61,7 +62,9 @@ class Overworld extends Phaser.Scene {
         });
 
         this.bag = new Bag(this);
-        this.monSwap = new MonSwap(this);
+        this.monSwap = new MonSwap(this, socket);
+        this.monSwapOption = new MonSwapOption(this, this.monSwap);
+        this.monSwap.monSwapOption = this.monSwapOption;
 
         this.socket = socket;
         this.socket.on('connect', () => console.log('connected to server! id:', this.socket.id));
@@ -134,6 +137,7 @@ class Overworld extends Phaser.Scene {
         consumers.push(this.menu);
         consumers.push(this.bag);
         consumers.push(this.monSwap);
+        consumers.push(this.monSwapOption);
 
         const camera = this.cameras.main;
         camera.startFollow(this.player.sprite);
