@@ -61,6 +61,7 @@ class Overworld extends Phaser.Scene {
         });
 
         this.bag = new Bag(this);
+        this.monSwap = new MonSwap(this);
 
         this.socket = socket;
         this.socket.on('connect', () => console.log('connected to server! id:', this.socket.id));
@@ -76,6 +77,11 @@ class Overworld extends Phaser.Scene {
             console.log('signer address acknowledged by server...');
             signerAddressAck = true;
             this.socket.emit('inventory', '');
+            this.socket.emit('getParty', '');
+        });
+
+        this.socket.on('getParty', party => {
+            this.monSwap.ingestParty(party);
         });
         this.socket.on('inventory', inventory => {
             for (var i in inventory) inventory[i] = Number(inventory[i].hex);
@@ -89,9 +95,6 @@ class Overworld extends Phaser.Scene {
         this.load.tilemapTiledJSON("map_" + this.tileset_name, "../assets/tilesets/" + this.tilemap_name + ".json");
         this.load.atlas("atlas", "../assets/atlas/atlas.png", "../assets/atlas/atlas.json");
         consumers = [];
-
-        // debug
-        this.load.image('mon_1_front', 'assets/pokemon/main-sprites/firered-leafgreen/1.png');
     }
 
     create(config) {
@@ -124,13 +127,13 @@ class Overworld extends Phaser.Scene {
         worldLayer.setScale(2, 2);
 
         this.dialog = new Dialog(this);
-        this.monSwap = new MonSwap(this);
         this.menu = new Menu(this, this.bag, this.monSwap);
         this.player = new Player(this, worldLayer, this.dialog, this.menu);
         consumers.push(this.player);
         consumers.push(this.dialog);
         consumers.push(this.menu);
         consumers.push(this.bag);
+        consumers.push(this.monSwap);
 
         const camera = this.cameras.main;
         camera.startFollow(this.player.sprite);

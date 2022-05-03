@@ -2,27 +2,9 @@
 import { Constants } from './constants.js';
 import { Timer } from './timer.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
+import { makeMonObject } from './utils.js';
 var constants = new Constants();
 
-
-function makeMonObject(monArray) {
-    function convert(bignum) {
-        return Number(bignum.hex);
-    }
-    return {
-        "speciesId": convert(monArray[0]),
-        "currentHP": convert(monArray[1]),
-        "maxHP": convert(monArray[2]),
-        "level": convert(monArray[3]),
-        "gender": convert(monArray[4]),
-        "moveset": monArray[5].map(x => x === '' ? '-' : x),
-        "movesetTypes": monArray[6].map(convert),
-        "currentPP": monArray[7].map(convert),
-        "maxPP": monArray[8].map(convert),
-        "currentExp": convert(monArray[9]),
-        "levelRequirement": convert(monArray[10])
-    };
-}
 
 function padString(string, amount, padchar=' ') {
     return string + padchar.repeat(amount - string.length);
@@ -157,6 +139,7 @@ export class Battle extends Phaser.Scene {
                 // if battle done, transition back to overworld
                 this.scene.stop('Battle');
                 this.scene.wake(this.previousSceneKey);
+                this.socket.emit('getParty', ''); // send the new party data back to the client
             }
 
             // setup all of the textboxes

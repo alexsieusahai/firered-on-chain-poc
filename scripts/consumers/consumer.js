@@ -8,7 +8,5 @@ export class Consumer {
     consumeX() {this.consumeNothing();}
     consumeZ() {this.consumeNothing();}
     consumeNothing() {}
-    isActive() {
-        return false;
-    }
+    isActive() {return false;}
 }

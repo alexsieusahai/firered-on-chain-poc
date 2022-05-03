@@ -75,6 +75,12 @@ function preload() {
             });
         });
 
+        socket.on('getParty', () => {
+            chain.getParty().then( party => {
+                socket.emit('getParty', party);
+            });
+        });
+
         socket.on('inventory', () => {
             chain.getInventory().then( inventory => socket.emit('inventory', inventory) );
         });
