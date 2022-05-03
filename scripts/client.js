@@ -81,6 +81,8 @@ class Overworld extends Phaser.Scene {
             signerAddressAck = true;
             this.socket.emit('inventory', '');
             this.socket.emit('getParty', '');
+            // DEBUG
+            this.socket.emit('wildEncounter', '');
         });
 
         this.socket.on('getParty', party => {

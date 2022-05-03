@@ -28,7 +28,8 @@ export class OptionTextBox extends Consumer {
                                      this.config['x'],
                                      this.config['y'],
                                      this.config)
-            .start(content, 0);
+            .start(content, 0)
+            .setScrollFactor(0, 0);
     }
 
     consumeW() {

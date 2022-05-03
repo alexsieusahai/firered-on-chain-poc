@@ -10,7 +10,10 @@ function padString(string, amount, padchar=' ') {
     return string + padchar.repeat(amount - string.length);
 }
 
+const MON_NAME_LENGTH = 12;
 const MOVE_STRING_LENGTH = 13;
+const MOVESET_BOX_HEIGHT = 80;
+
 function movesetTextbox(scene, mon, moveSelection) {
     var content = '';
     var moveset;
@@ -35,6 +38,9 @@ function movesetTextbox(scene, mon, moveSelection) {
     }
     createTextBox(scene, 5, constants.height - 5, {
         fixedWidth: constants.width * 2/3 - 20,
+        fixedHeight: MOVESET_BOX_HEIGHT,
+        fontSize: '20px',
+        lineSpacing: 20
     })
         .start(content, 0);
 }
@@ -50,19 +56,24 @@ function currentMoveTextbox(scene, mon, currentMove) {
     }
     createTextBox(scene, constants.width * 2/3, constants.height - 5, {
         wrapWidth: constants.width * 1/3 - 20,
-        fixedWidth: constants.width * 1/3 - 20
+        fixedWidth: constants.width * 1/3 - 20,
+        fixedHeight: MOVESET_BOX_HEIGHT,
+        fontSize: '18px',
+        lineSpacing: 15
     })
         .start(content, 0);
 }
 
-const MON_NAME_LENGTH = 12;
 function playerMonTextbox(scene, mon) {
     var content = padString(mon['name'], MON_NAME_LENGTH);
     content += "Lv" + String(mon['level']) + '\n';
     content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
-    createTextBox(scene, constants.width * 2/3 - 20, 150, {
+    createTextBox(scene, constants.width * 2/3 - 20, constants.height - MOVESET_BOX_HEIGHT - 40, {
         wrapWidth: constants.width * 1/3,
-        fixedWidth: constants.width * 1/3
+        fixedWidth: constants.width * 1/3,
+        fixedHeight: 50,
+        fontSize: '18px',
+        lineSpacing: 8,
     })
         .start(content, 0);
 
@@ -73,21 +84,19 @@ function playerMonTextbox(scene, mon) {
     graphics = scene.add.graphics();
 
     //  32px radius on the corners
-    console.log("mon currentExp", mon['currentExp']);
-    console.log('mon levelRequirement', mon['levelRequirement']);
     graphics.fillStyle(0x7E879C, 1);
     var expBarWidth = constants.width * 1/3 - 10;
     graphics.fillRoundedRect(constants.width * 2/3,
-                             151,
+                             constants.height - MOVESET_BOX_HEIGHT - 40 - 1,
                              expBarWidth,
-                             3,
+                             10,
                              2);
     graphics.fillStyle(0x52B9FF, 1);
     graphics.fillRoundedRect(
         constants.width * 2/3,
-        151,
+        constants.height - MOVESET_BOX_HEIGHT - 40 - 1,
         expBarWidth * (mon['currentExp'] / mon['levelRequirement']),
-        3,
+        10,
         2);
 }
 
@@ -96,9 +105,12 @@ function enemyMonTextbox(scene, mon) {
     content = padString(mon['name'], MON_NAME_LENGTH);
     content += "Lv" + String(mon['level']) + '\n';
     content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
-    createTextBox(scene, 5, 50, {
+    createTextBox(scene, 25, 120, {
         wrapWidth: constants.width * 1/3,
-        fixedWidth: constants.width * 1/3
+        fixedWidth: constants.width * 1/3,
+        fixedHeight: 50,
+        fontSize: '18px',
+        lineSpacing: 8,
     })
         .start(content, 0);
 }
@@ -119,10 +131,7 @@ export class Battle extends Phaser.Scene {
             url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js',
             sceneKey: 'rexUI'
         });
-        // load the mons in both parties
         this.load.image('background', 'assets/battle-background.jpg');
-        this.load.image('mon_1_back', 'assets/pokemon/main-sprites/firered-leafgreen/back/1.png');
-        this.load.image('mon_16_front', 'assets/pokemon/main-sprites/firered-leafgreen/16.png');
     }
 
     create(data) {
@@ -130,6 +139,7 @@ export class Battle extends Phaser.Scene {
         this.previousSceneKey = data.from;
         this.menuSelection = 0;
         this.menuState = "ACTION";
+        this.loadedImages = false;
 
         // grab the data from the backend
         this.socket.on('battleUI', (data) => {
@@ -141,10 +151,11 @@ export class Battle extends Phaser.Scene {
                 this.scene.wake(this.previousSceneKey);
                 this.socket.emit('getParty', ''); // send the new party data back to the client
             }
-
-            // setup all of the textboxes
+            // load the mons in both parties
+            // setup all of the textboxes, load the relevant images
             this.myParty = data["party"]["mons"].map(makeMonObject);
             var monNamesParty = data["party"]["names"];
+            var speciesId;
             for (var i = 0; i < this.myParty.length; ++i) {
                 this.myParty[i]['name'] = monNamesParty[i];
             }
@@ -153,11 +164,29 @@ export class Battle extends Phaser.Scene {
             for (var i = 0; i < this.enemyParty.length; ++i) {
                 this.enemyParty[i]['name'] = enemyNamesParty[i];
             }
-            // console.log("myParty[0]", myParty[0]);
+
+            if (!this.loadedImages) {
+                this.loadMonImages();
+                this.loadedImages = true;
+            }
+
+            this.add.image(constants.width / 2,
+                           (constants.height - MOVESET_BOX_HEIGHT) / 2 - 20,
+                           'background')
+                .setDisplaySize(constants.width, constants.height - MOVESET_BOX_HEIGHT);
+
             movesetTextbox(this, this.myParty[0], this.menuSelection);
             currentMoveTextbox(this, this.myParty[0], this.menuSelection);
             playerMonTextbox(this, this.myParty[0]);
             enemyMonTextbox(this, this.enemyParty[0]);
+
+            // if images not loaded, wait until loaded
+            speciesId = this.myParty[0]['speciesId'];
+            this.add.image(140, constants.height - MOVESET_BOX_HEIGHT - 70, 'mon_' + String(speciesId) + '_back')
+                .setScale(3);
+            speciesId = this.enemyParty[0]['speciesId'];
+            this.add.image(constants.width - 160, 150, 'mon_' + String(speciesId) + '_front')
+                .setScale(3);
         });
 
         // after action has completed, ask for new UI data and subsequently redraw upon ingestion
@@ -165,12 +194,12 @@ export class Battle extends Phaser.Scene {
             this.socket.emit('battleUI');
         });
 
-        this.add.image(150, 80, 'background')
-            .setScale(1.4);
-        this.add.image(70, 130, 'mon_1_back')
-            .setScale(1.5);
-        this.add.image(220, 60, 'mon_16_front')
-            .setScale(1.5);
+        this.add.image(constants.width / 2,
+                        (constants.height - MOVESET_BOX_HEIGHT) / 2 - 20,
+                        'background')
+            .setDisplaySize(constants.width, constants.height - MOVESET_BOX_HEIGHT);
+
+        this.socket.emit('battleUI');
     }
 
     redrawMoveTextboxes() {
@@ -251,6 +280,21 @@ export class Battle extends Phaser.Scene {
             this.menuState = "ACTION";
             this.redrawMoveTextboxes();
         }
+    }
+
+    loadMonImages() {
+        var i, speciesId;
+        for (i = 0; i < this.myParty.length; ++i) {
+            speciesId = this.myParty[i]['speciesId'];
+            this.load.image('mon_' + String(speciesId) + '_back',
+                            'assets/pokemon/main-sprites/firered-leafgreen/back/' + String(speciesId) + '.png');
+        }
+        for (i = 0; i < this.enemyParty.length; ++i) {
+            speciesId = this.enemyParty[i]['speciesId'];
+            this.load.image('mon_' + String(speciesId) + '_front',
+                            'assets/pokemon/main-sprites/firered-leafgreen/' + String(speciesId) + '.png');
+        }
+        this.load.start();
     }
 }
 

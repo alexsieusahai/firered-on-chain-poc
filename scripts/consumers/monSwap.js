@@ -79,7 +79,7 @@ export class MonSwap extends OptionTextBox {
 
     constructAltMon(i) {
         var graphics = this.parent.add.graphics();
-        var altMon = this.parent.add.container(constants.width * 3 / 5, constants.height * (i - 1) / 5 + 40);
+        var altMon = this.parent.add.container(constants.width * 3 / 5, constants.height * (i - 1) / 5 + 20);
         graphics.fillStyle(constants.COLOR_PRIMARY, 1);
         var rect = graphics.fillRoundedRect(0, 0, 200, ALT_MON_RECT_HEIGHT, 8);
         graphics.lineStyle(this.current === i ? 3 : 1, constants.COLOR_DARK);
@@ -133,7 +133,8 @@ export class MonSwap extends OptionTextBox {
 
     construct() {
         if (typeof this.container !== 'undefined') this.destroy();
-        this.container = this.parent.add.container(0, 0);
+        this.container = this.parent.add.container(0, 0)
+            .setScrollFactor(0, 0);
         this.constructMainMon();
         for (var i = 1; i < 6; ++i) this.constructAltMon(i);
     }

@@ -114,17 +114,17 @@ class Deploy {
 
     async setBaseStats() {
         // setup all of the stats for everything
-        // bulbasaur mock
         await this.monBaseStats.setStats(1, 4500, 4900, 4900, 6500, 6500, 4500);
-        // pidgey mock
+        await this.monBaseStats.setStats(4, 4400, 4800, 6500, 5000, 6400, 4300);
+        await this.monBaseStats.setStats(7, 3900, 5200, 4300, 6000, 5000, 6500);
         await this.monBaseStats.setStats(16, 4000, 4500, 4000, 3500, 3500, 5600);
-        console.log('setup base stats!');
+        console.log('setup base stat mocks!');
     }
 
     async setMonTypes() {
-        // bulbasaur mock
         await this.monTypes.addSpecies(1, [3]);
-        // pidgey mock
+        await this.monTypes.addSpecies(4, [2]);
+        await this.monTypes.addSpecies(7, [1]);
         await this.monTypes.addSpecies(16, [0, 9]);
         console.log("setup mon type mocks!");
     }
