@@ -3,6 +3,7 @@ import { Constants } from '../constants.js';
 import { createTextBox, getBBcodeText } from '../textBox.js';
 let constants = new Constants();
 
+const GetValue = Phaser.Utils.Objects.GetValue;
 export class OptionTextBox extends Consumer {
     constructor(parentScene, options, config) {
         super();
@@ -10,6 +11,8 @@ export class OptionTextBox extends Consumer {
         this.options = options;
         this.config = config;
         this.current = 0;
+        this.columns = GetValue(config, 'columns', 1);
+        this.columnWidth = GetValue(config, 'columnWidth', 0);
     }
 
     getCurrentOption() {
@@ -21,7 +24,9 @@ export class OptionTextBox extends Consumer {
 
         var content = '';
         for (var i in this.options) {
-            content += (this.current == i ? '*' : ' ') + this.options[i] + '\n';
+            content += ((this.current == i ? '*' : ' ')
+                        + this.options[i]
+                        + (i % this.columns ? ' '.repeat(this.columnWidth) : '\n'));
         }
 
         this.textBox = createTextBox(this.parent,
@@ -32,17 +37,37 @@ export class OptionTextBox extends Consumer {
             .setScrollFactor(0, 0);
     }
 
+    currentDelta(delta) {
+        this.current += delta;
+        if (this.current < 0) this.current += this.options.length;
+        if (this.current >= this.options.length) this.current -= this.options.length;
+    }
+
     consumeW() {
         if (this.parent.timer.timer('menu')) {
-            this.current -= 1;
-            if (this.current < 0) this.current += this.options.length;
+            this.currentDelta(-this.columns);
             this.construct();
         }
     }
 
+    consumeA() {
+        if (this.parent.timer.timer('menu')) {
+            this.currentDelta(-1);
+            this.construct();
+        }
+    }
+
+
     consumeS() {
         if (this.parent.timer.timer('menu')) {
-            this.current = (this.current + 1) % this.options.length;
+            this.currentDelta(this.columns);
+            this.construct();
+        }
+    }
+
+    consumeD() {
+        if (this.parent.timer.timer('menu')) {
+            this.currentDelta(1);
             this.construct();
         }
     }
