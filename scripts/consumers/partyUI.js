@@ -6,15 +6,15 @@ let constants = new Constants();
 const ALT_MON_RECT_HEIGHT = 70;
 const ALT_MON_HEALTH_Y = 35;
 
-export class MonSwap extends OptionTextBox {
+export class PartyUI extends OptionTextBox {
     constructor(parentScene, socket) {
         super(parentScene, [0, 1, 2, 3, 4, 5], {});
-        this.state = 'SELECT';
         this.socket = socket;
     }
 
     ingestParty(party) {
         this.partyNames = party['names'];
+        this.state = 'SELECT';
         this.party = party['mons'].map(makeMonObject);
         for (var i in this.party) {
             var speciesId = this.party[i]['speciesId'];
@@ -131,6 +131,28 @@ export class MonSwap extends OptionTextBox {
         this.container.add([altMon]);
     }
 
+    consumeZ() {
+        // spawn the partyUIOption box, which will handle state transitions and action consumption for partyUI
+        // flow should be
+        // open partyUI -> select mon to swap -> select other mon -> swap mons
+        if (this.parent.timer.timer('menu')) {
+            if (this.state === 'SELECT') {
+                this.partyUIOption.construct();
+            } else if (this.state === 'SWAP') {
+                // do the swap with the selected mons and cleanup
+                console.log('swapping mons', this.selectedMon, this.current);
+                this.socket.emit('swapPartyMember', this.selectedMon, this.current);
+                this.cleanup();
+            } else if (this.state === 'BATTLE') {
+                this.selectedMon = this.current;
+                this.parent.events.emit('partyUISelected');
+                this.destroy();
+            } else {
+                console.warn("partyUI currently does not support the current state!");
+            }
+        }
+    }
+
     construct() {
         if (typeof this.container !== 'undefined') this.destroy();
         this.container = this.parent.add.container(0, 0)
@@ -147,26 +169,7 @@ export class MonSwap extends OptionTextBox {
         if (this.parent.timer.timer('menu')) this.destroy();
     }
 
-    consumeZ() {
-        // spawn the monSwapOption box, which will handle state transitions and action consumption for monSwap
-        // flow should be
-        // open monSwap -> select mon to swap -> select other mon -> swap mons
-        if (this.parent.timer.timer('menu')) {
-            if (this.state === 'SELECT') {
-                this.monSwapOption.construct();
-            } else if (this.state === 'SWAP') {
-                // do the swap with the selected mons and cleanup
-                console.log('swapping mons', this.selectedMon, this.current);
-                this.socket.emit('swapPartyMember', this.selectedMon, this.current);
-                this.cleanup();
-            } else {
-                console.warn("monSwap currently does not support the current state!");
-            }
-        }
-    }
-
     cleanup() {
-        this.state = 'SELECT';
         this.selectedMon = undefined;
         this.current = 0;
     }

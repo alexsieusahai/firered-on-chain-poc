@@ -2,6 +2,7 @@
 import { Constants } from './constants.js';
 import { Timer } from './timer.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
+import { PartyUI } from './consumers/partyUI.js';
 import { makeMonObject } from './utils.js';
 var constants = new Constants();
 
@@ -135,11 +136,13 @@ export class Battle extends Phaser.Scene {
     }
 
     create(data) {
+        this.timer = timer;
         this.socket = data.socket;
         this.previousSceneKey = data.from;
         this.menuSelection = 0;
         this.menuState = "ACTION";
         this.loadedImages = false;
+        this.partyUI = new PartyUI(this, this.socket);
 
         // grab the data from the backend
         this.socket.on('battleUI', (data) => {
@@ -153,6 +156,7 @@ export class Battle extends Phaser.Scene {
             }
             // load the mons in both parties
             // setup all of the textboxes, load the relevant images
+            this.partyUI.ingestParty(data['party']);
             this.myParty = data["party"]["mons"].map(makeMonObject);
             var monNamesParty = data["party"]["names"];
             var speciesId;
@@ -175,10 +179,12 @@ export class Battle extends Phaser.Scene {
                            'background')
                 .setDisplaySize(constants.width, constants.height - MOVESET_BOX_HEIGHT);
 
-            movesetTextbox(this, this.myParty[0], this.menuSelection);
-            currentMoveTextbox(this, this.myParty[0], this.menuSelection);
-            playerMonTextbox(this, this.myParty[0]);
-            enemyMonTextbox(this, this.enemyParty[0]);
+            if (!this.partyUI.isActive()) {
+                movesetTextbox(this, this.myParty[0], this.menuSelection);
+                currentMoveTextbox(this, this.myParty[0], this.menuSelection);
+                playerMonTextbox(this, this.myParty[0]);
+                enemyMonTextbox(this, this.enemyParty[0]);
+            }
 
             // if images not loaded, wait until loaded
             speciesId = this.myParty[0]['speciesId'];
@@ -223,26 +229,34 @@ export class Battle extends Phaser.Scene {
         let keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
         var menuDelta = 0;
-        if (keyS.isDown && timer.timer('movement')) {
-            menuDelta = 2;
-        }
-        if (keyW.isDown && timer.timer('movement')) {
-            menuDelta = -2;
-        }
-        if (keyA.isDown && timer.timer('movement')) {
-            menuDelta = -1;
-        }
-        if (keyD.isDown && timer.timer('movement')) {
-            menuDelta = 1;
-        }
-        if (menuDelta !== 0) {
-            this.menuSelection = (this.menuSelection + menuDelta) % 4;
-            if (this.menuSelection < 0) {
-                this.menuSelection += 4;
+        if (this.partyUI.isActive()) {
+            if (keyS.isDown) {
+                this.partyUI.consumeS();
+            } else if (keyW.isDown) {
+                this.partyUI.consumeW();
+            } else if (keyA.isDown) {
+                this.partyUI.consumeA();
+            } else if (keyD.isDown) {
+                this.partyUI.consumeD();
             }
-            this.redrawMoveTextboxes();
+        } else {
+            if (keyS.isDown && timer.timer('movement')) {
+                menuDelta = 2;
+            } else if (keyW.isDown && timer.timer('movement')) {
+                menuDelta = -2;
+            } else if (keyA.isDown && timer.timer('movement')) {
+                menuDelta = -1;
+            } else if (keyD.isDown && timer.timer('movement')) {
+                menuDelta = 1;
+            }
+            if (menuDelta !== 0) {
+                this.menuSelection = (this.menuSelection + menuDelta) % 4;
+                if (this.menuSelection < 0) {
+                    this.menuSelection += 4;
+                }
+                this.redrawMoveTextboxes();
+            }
         }
-
         // handle state transitions and sending actions to backend
         if (keyZ.isDown && timer.timer('movement')) {
             if (this.menuState === "ACTION") {
@@ -255,8 +269,15 @@ export class Battle extends Phaser.Scene {
                     console.warn("BAG NOT IMPLEMENTED IN UI");
                     break;
                 case 2:
-                    // this.menuState = "MONS";
-                    console.warn("MONS NOT IMPLEMENTED IN UI");
+                    this.menuState = "MONS";
+                    this.partyUI.construct();
+                    this.partyUI.state = 'BATTLE';
+                    this.events.on('partyUISelected', () => {
+                        console.log('mon selected; ingesting SWAP action on chain...');
+                        this.socket.emit('battleIngestAction', {'action' : 3, 'slot' : this.partyUI.selectedMon});
+                        this.partyUI.destroy();
+                        this.menuState = "ACTION";
+                    }, this);
                     break;
                 case 3:
                     this.socket.emit('battleIngestAction', {'action' : 4, 'slot' : this.menuSelection});
@@ -265,9 +286,10 @@ export class Battle extends Phaser.Scene {
                     console.warn("menuState is in an invalid state");
                     break;
                 }
-            }
-            else if (this.menuState === "FIGHT") {
+            } else if (this.menuState === "FIGHT") {
                 this.socket.emit('battleIngestAction', {'action' : 1, 'slot' : this.menuSelection});
+            } else if (this.menuState === "MONS") {
+                this.partyUI.consumeZ();
             } else {
                 console.warn("menuState", this.menuState, "NOT IMPLEMENTED IN UI");
             }

@@ -5,8 +5,8 @@ import { Player } from './consumers/player.js';
 import { Dialog } from './consumers/dialog.js';
 import { Bag } from './consumers/bag.js';
 import { Menu } from './consumers/menu.js';
-import { MonSwap } from './consumers/monSwap.js';
-import { MonSwapOption } from './consumers/monSwapOption.js';
+import { PartyUI } from './consumers/partyUI.js';
+import { PartyUIOption } from './consumers/partyUIOption.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
 
 var constants = new Constants();
@@ -62,9 +62,9 @@ class Overworld extends Phaser.Scene {
         });
 
         this.bag = new Bag(this);
-        this.monSwap = new MonSwap(this, socket);
-        this.monSwapOption = new MonSwapOption(this, this.monSwap);
-        this.monSwap.monSwapOption = this.monSwapOption;
+        this.partyUI = new PartyUI(this, socket);
+        this.partyUIOption = new PartyUIOption(this, this.partyUI);
+        this.partyUI.partyUIOption = this.partyUIOption;
 
         this.socket = socket;
         this.socket.on('connect', () => console.log('connected to server! id:', this.socket.id));
@@ -86,7 +86,7 @@ class Overworld extends Phaser.Scene {
         });
 
         this.socket.on('getParty', party => {
-            this.monSwap.ingestParty(party);
+            this.partyUI.ingestParty(party);
         });
         this.socket.on('inventory', inventory => {
             for (var i in inventory) inventory[i] = Number(inventory[i].hex);
@@ -132,14 +132,14 @@ class Overworld extends Phaser.Scene {
         worldLayer.setScale(2, 2);
 
         this.dialog = new Dialog(this);
-        this.menu = new Menu(this, this.bag, this.monSwap);
+        this.menu = new Menu(this, this.bag, this.partyUI);
         this.player = new Player(this, worldLayer, this.dialog, this.menu);
         consumers.push(this.player);
         consumers.push(this.dialog);
         consumers.push(this.menu);
         consumers.push(this.bag);
-        consumers.push(this.monSwap);
-        consumers.push(this.monSwapOption);
+        consumers.push(this.partyUI);
+        consumers.push(this.partyUIOption);
 
         const camera = this.cameras.main;
         camera.startFollow(this.player.sprite);

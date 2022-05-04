@@ -1,9 +1,10 @@
 import { OptionTextBox } from './optionTextBox.js';
 import { Constants } from '../constants.js';
+import { PartyUI } from './partyUI.js';
 let constants = new Constants();
 
-export class MonSwapOption extends OptionTextBox {
-    constructor(parentScene, monSwap) {
+export class PartyUIOption extends OptionTextBox {
+    constructor(parentScene, partyUI) {
         super(parentScene,
               ["MON", "SWAP"],
               {'x': constants.width - 180,
@@ -14,7 +15,7 @@ export class MonSwapOption extends OptionTextBox {
                'radius' : 8,
                'fontSize': '20px',
                'lineSpacing': 3});
-        this.monSwap = monSwap;
+        this.partyUI = partyUI;
     }
 
     consumeC() {
@@ -25,15 +26,15 @@ export class MonSwapOption extends OptionTextBox {
         // take in the selection and change the state of monswap accordingly
         if (this.parent.timer.timer('menu')) {
             if (this.getCurrentOption() === "SWAP") {
-                if (this.monSwap.state === 'SELECT') {
-                    this.monSwap.selectedMon = this.monSwap.current;
-                    this.monSwap.state = 'SWAP';
+                if (this.partyUI.state === 'SELECT') {
+                    this.partyUI.selectedMon = this.partyUI.current;
+                    this.partyUI.state = 'SWAP';
                     this.destroy();
                 } else {
-                    console.warn("monSwapOption currently does not support the selected monSwap.state!");
+                    console.warn("partyUIOption currently does not support the selected partyUI.state!");
                 }
             } else {
-                console.warn("monSwapOption currently does not support the selected menu option!");
+                console.warn("partyUIOption currently does not support the selected menu option!");
             }
         }
     }
