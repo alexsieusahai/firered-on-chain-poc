@@ -3,22 +3,22 @@ export function makeMonObject(monArray) {
         return Number(bignum.hex);
     }
     return {
-        "speciesId": convert(monArray[0]),
-        "currentHP": convert(monArray[1]),
-        "maxHP": convert(monArray[2]),
-        "level": convert(monArray[3]),
-        "gender": convert(monArray[4]),
-        "moveset": monArray[5].map(x => x === '' ? '-' : x),
-        "movesetTypes": monArray[6].map(convert),
-        "currentPP": monArray[7].map(convert),
-        "maxPP": monArray[8].map(convert),
-        "currentExp": convert(monArray[9]),
-        "levelRequirement": convert(monArray[10])
+        "id": convert(monArray[0]),
+        "speciesId": convert(monArray[1]),
+        "currentHP": convert(monArray[2]),
+        "maxHP": convert(monArray[3]),
+        "level": convert(monArray[4]),
+        "gender": convert(monArray[5]),
+        "moveset": monArray[6].map(x => x === '' ? '-' : x),
+        "movesetTypes": monArray[7].map(convert),
+        "currentPP": monArray[8].map(convert),
+        "maxPP": monArray[9].map(convert),
+        "currentExp": convert(monArray[10]),
+        "levelRequirement": convert(monArray[11])
     };
 }
 
 export function getTypeString(typeInt) {
-    console.warn("type string should just be a JSON file");
     switch (typeInt) {
     case 0:
         return "NORMAL";

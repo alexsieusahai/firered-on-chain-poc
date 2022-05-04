@@ -62,7 +62,8 @@ contract MonManager is Ownable, ServerOwnable {
             }
         uint maxHP;
         (maxHP,,,,,) = _monNFT.idToStats(id);
-        return MonLib.BattleMon(_monNFT.idToSpecies(id),
+        return MonLib.BattleMon(id,
+                                _monNFT.idToSpecies(id),
                                 _monNFT.idToHP(id),
                                 maxHP,
                                 _monNFT.idToLevel(id),

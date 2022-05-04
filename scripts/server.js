@@ -7,8 +7,7 @@ const fs = require('fs');
 
 // local imports
 const { Chain } = require("./chain");
-var chain = new Chain();
-
+var chain;
 
 // get phaser to work with nodejs
 require('@geckos.io/phaser-on-nodejs');
@@ -27,13 +26,11 @@ const config = {
 };
 
 function preload() {
-    console.log("preload");
     var speciesIdToName = JSON.parse(fs.readFileSync(__dirname + "/../data/dex.json"));
 
     io.on('connection', (socket) => {
-        console.log('user connected');
-        console.log(socket.id);
-        // console.log(socket);
+        console.log('user connected', socket.id);
+        chain = new Chain(socket);
         socket.on('greet', (_) => {
             chain.callGreet().then(greet => socket.emit('greeting', greet));
         });

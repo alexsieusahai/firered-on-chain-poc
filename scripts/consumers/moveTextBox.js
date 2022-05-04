@@ -23,16 +23,28 @@ export class MoveTextBox extends OptionTextBox {
         this.partyUI = partyUI;
         this.socket = socket;
 
-        this.parent.events.on('moveTextBoxOptions', options => {
-            this.options = options;
-            this.construct();
-        }, this);
-        this.parent.events.on('currentMon', mon => this.mon = mon);
-
+        this.parent.events.on('currentMon', mon =>
+            {
+                this.mon = mon;
+                this.construct();
+            });
     }
 
     construct() {
+        switch (this.state) {
+        case "FIGHT":
+            this.options = this.mon["moveset"];
+            break;
+        case "ACTION":
+            this.options = ["FIGHT", "BAG", "MONS", "FLEE"];
+            break;
+        default:
+            this.options = ['?', '?', '?', '?'];
+            break;
+        }
+
         super.construct();
+
         var currentMove = this.current;
         var currentPP = this.mon['currentPP'][currentMove];
         var maxPP = this.mon['maxPP'][currentMove];
@@ -46,7 +58,7 @@ export class MoveTextBox extends OptionTextBox {
             wrapWidth: constants.width * 1/3 - 20,
             fixedWidth: constants.width * 1/3 - 20,
             fixedHeight: MOVESET_BOX_HEIGHT,
-            fontSize: '18px',
+            fontSize: constants.BATTLE_FONTSIZE,
             lineSpacing: 15
         })
             .start(content, 0);
@@ -76,6 +88,7 @@ export class MoveTextBox extends OptionTextBox {
                     break;
                 case 3:
                     this.socket.emit('battleIngestAction', {'action' : 4, 'slot' : this.current});
+                    this.ingestFlee();
                     break;
                 default:
                     console.warn("menuState is in an invalid state");
@@ -87,12 +100,19 @@ export class MoveTextBox extends OptionTextBox {
             } else {
                 console.warn("menuState", this.state, "NOT IMPLEMENTED IN UI");
             }
+            this.construct();
         }
     }
 
     consumeX() {
         if (this.parent.timer.timer('menu')) {
             this.state = "ACTION";
+            this.construct();
         }
+    }
+
+    ingestFlee() {
+        // we handle this one on the frontend to avoid a race condition
+        this.parent.events.emit('battleDialog', "Successfully fled!");
     }
 }

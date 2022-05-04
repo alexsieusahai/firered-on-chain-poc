@@ -5,6 +5,7 @@ import { createTextBox, getBBcodeText } from './textbox.js';
 import { PartyUI } from './consumers/partyUI.js';
 import { makeMonObject } from './utils.js';
 import { MoveTextBox } from './consumers/moveTextBox.js';
+import { BattleDialog } from './consumers/battleDialog.js';
 import { padString } from './utils.js';
 var constants = new Constants();
 
@@ -12,22 +13,6 @@ var constants = new Constants();
 const MON_NAME_LENGTH = 12;
 const MOVE_STRING_LENGTH = 13;
 const MOVESET_BOX_HEIGHT = 80;
-
-function changeMoveOptions(scene, mon) {
-    var moveset;
-    switch (scene.moveTextBox.state) {
-    case "FIGHT":
-        moveset = mon["moveset"];
-        break;
-    case "ACTION":
-        moveset = ["FIGHT", "BAG", "MONS", "FLEE"];
-        break;
-    default:
-        moveset = ['?', '?', '?', '?'];
-        break;
-    }
-    scene.events.emit('moveTextBoxOptions', moveset);
-}
 
 function monTextBox(scene, mon, x, y) {
     var content = padString(mon['name'], MON_NAME_LENGTH);
@@ -88,18 +73,20 @@ export class Battle extends Phaser.Scene {
         this.timer = timer;
         this.socket = data.socket;
         this.previousSceneKey = data.from;
+        this.signer = data.signer;
+        console.log('signer ingested in battle is', this.signer);
         this.menuSelection = 0;
         this.loadedImages = false;
         this.partyUI = new PartyUI(this, this.socket);
         this.moveTextBox = new MoveTextBox(this, ['?', '?', '?', '?'], this.partyUI, this.socket);
-        this.consumers = [this.moveTextBox, this.partyUI];
+        this.dialog = new BattleDialog(this);
+        this.consumers = [this.moveTextBox, this.dialog, this.partyUI];
 
         // grab the data from the backend
         this.socket.on('battleUI', (data) => {
             console.log('got battle UI data!');
 
-            if (!data['inBattle']) {
-                // if battle done, transition back to overworld
+            if (!data['inBattle'] && !this.dialog.isActive()) {
                 this.scene.stop('Battle');
                 this.scene.wake(this.previousSceneKey);
                 this.socket.emit('getParty', ''); // send the new party data back to the client
@@ -122,6 +109,7 @@ export class Battle extends Phaser.Scene {
 
             if (!this.loadedImages) {
                 this.loadMonImages();
+                this.events.emit('battleDialog', "A wild " + enemyNamesParty[0] + " has appeared!");
                 this.loadedImages = true;
             }
 
@@ -133,7 +121,6 @@ export class Battle extends Phaser.Scene {
 
             // make sure not to draw over partyUI
             if (!this.partyUI.isActive()) {
-                changeMoveOptions(this, this.myParty[0]);
                 playerMonTextbox(this, this.myParty[0]);
                 enemyMonTextbox(this, this.enemyParty[0]);
             }
@@ -152,20 +139,27 @@ export class Battle extends Phaser.Scene {
             this.socket.emit('battleUI');
         });
 
+        this.socket.on('attack', (addr, attackerId, defenderId, slot, critical, typeDamageMultiplier) => {
+            slot = Number(slot.hex);
+            attackerId = Number(attackerId.hex);
+            typeDamageMultiplier = Number(typeDamageMultiplier.hex);
+            if (addr === this.signer) {
+                var mon = this.myParty[0]['id'] === attackerId ? this.myParty[0] : this.enemyParty[0];
+                this.events.emit('battleDialog', mon['name'] + ' used ' + mon['moveset'][slot] + '!');
+                console.log(critical, typeDamageMultiplier);
+                if (critical) this.events.emit('battleDialog', 'It was a critical hit!');
+                if (typeDamageMultiplier === 20) this.events.emit('battleDialog', 'It was super effective!');
+                else if (typeDamageMultiplier === 5) this.events.emit('battleDialog', 'It was not very effective...');
+                else if (typeDamageMultiplier === 0) this.events.emit('battleDialog', 'It had no effect...');
+            }
+        });
+
         this.add.image(constants.width / 2,
                         (constants.height - MOVESET_BOX_HEIGHT) / 2 - 20,
                         'background')
             .setDisplaySize(constants.width, constants.height - MOVESET_BOX_HEIGHT);
 
         this.socket.emit('battleUI');
-    }
-
-    redrawMoveTextboxes() {
-        if (typeof this.myParty !== 'undefined') {
-            changeMoveOptions(this, this.myParty[0]);
-        } else {
-            console.log("still waiting on data from backend...");
-        }
     }
 
     update() {
@@ -179,23 +173,17 @@ export class Battle extends Phaser.Scene {
         let keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         let keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
-        var menuDelta = 0;
         var consumer = undefined;
         for (var i in this.consumers) {
+            this.consumers[i].beforeConsume();
             if (this.consumers[i].isActive()) consumer = this.consumers[i];
         }
         if      (keyS.isDown) consumer.consumeS();
         else if (keyW.isDown) consumer.consumeW();
         else if (keyA.isDown) consumer.consumeA();
         else if (keyD.isDown) consumer.consumeD();
-        else if (keyZ.isDown) {
-            consumer.consumeZ();
-            this.redrawMoveTextboxes();
-        }
-        else if (keyX.isDown) {
-            consumer.consumeX();
-            this.redrawMoveTextboxes();
-        }
+        else if (keyZ.isDown) consumer.consumeZ();
+        else if (keyX.isDown) consumer.consumeX();
     }
 
     loadMonImages() {
@@ -211,5 +199,10 @@ export class Battle extends Phaser.Scene {
                             'assets/pokemon/main-sprites/firered-leafgreen/' + String(speciesId) + '.png');
         }
         this.load.start();
+        this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+            this.socket.emit('battleUI');
+        });
+
+        // after load, send out battleUI
     }
 }

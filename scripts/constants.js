@@ -9,5 +9,6 @@ export class Constants {
         this.COLOR_PRIMARY = 0xddddeb;
         this.COLOR_LIGHT = 0x6f6f8c;
         this.COLOR_DARK = 0x3b3b4a;
+        this.BATTLE_FONTSIZE = '18px';
     }
 }

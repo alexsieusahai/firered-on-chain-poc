@@ -194,9 +194,10 @@ class Deploy {
         // for now, just use dumbrandom
 
         // mint starters for the user
-        await this.monNFT.mintSpeciesMon(this.user.address, 1, 5, 1, 0, 0, 0);
-        await this.monNFT.mintSpeciesMon(this.user.address, 4, 5, 1, 0, 0, 0);
-        await this.monNFT.mintSpeciesMon(this.user.address, 7, 5, 1, 0, 0, 0);
+        // give all mons Pound, Ice Punch, Karate Chop
+        await this.monNFT.mintSpeciesMon(this.user.address, 1, 5, 1, 8, 2, 22);
+        await this.monNFT.mintSpeciesMon(this.user.address, 4, 5, 1, 8, 2, 22);
+        await this.monNFT.mintSpeciesMon(this.user.address, 7, 5, 1, 8, 2, 22);
         await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 0, 1);
         await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 1, 2);
         await this.monManager.connect(serverSigner).setPartyMember(this.user.address, 2, 3);

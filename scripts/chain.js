@@ -8,7 +8,8 @@ var hhProvider = new ethers.providers.WebSocketProvider("http://127.0.0.1:8545")
 const hhAcc10Signer = new ethers.Wallet('0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', hhProvider);
 
 class Chain {
-    constructor() {
+    constructor(socket) {
+        this.socket = socket;
         this.contracts = {};
         console.warn("loading contracts from memory...");
         this.loadContracts().then(() => console.log("loaded all contracts!"));
@@ -33,6 +34,10 @@ class Chain {
             );
             console.log("loaded contract with key", key);
         }
+
+        this.contracts['Battle'].on('Attack', (addr, attackerId, defenderId, slot, critical, typeDamageMultiplier) => {
+            this.socket.emit('attack', addr, attackerId, defenderId, slot, critical, typeDamageMultiplier);
+        });
     }
 
     async callGreet() {

@@ -7,7 +7,7 @@ export class Dialog extends Consumer {
     }
 
     consumeZ() {
-        if (this.parent.timer.timer('dialog')) {
+        if (this.parent.timer.timer('menu')) {
             if (this.textBox.isTyping) this.textBox.stop(true);
             else this.textBox.isLastPage ? this.textBox.destroy() : this.textBox.typeNextPage();
         }

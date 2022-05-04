@@ -18,6 +18,7 @@ let facingCoords;
 let currentMenu;
 let consumers;
 let socket = io('http://localhost:3000');
+let signer;
 let signerAddressAck = false;
 
 function makeMenu(scene) {
@@ -71,10 +72,11 @@ class Overworld extends Phaser.Scene {
         this.socket.on('random', seed => {this.prng = new Math.seedrandom(seed); });
         this.socket.on('wildEncounter', () => {
             console.log("transitioning to battle with wild mon");
-            this.socket.emit('battleUI');
             console.log("NOTIMPLEMENTED: below line shouldn't be default, it should be the name of the scene");
             this.scene.sleep(this.tileset_name);
-            this.scene.run('Battle', {socket: this.socket, from: this.tileset_name});
+            signer.getAddress().then( addr => {
+                this.scene.run('Battle', {socket: this.socket, from: this.tileset_name, signer: addr});
+            });
         });
         this.socket.on('signerAddressAck', () => {
             console.log('signer address acknowledged by server...');
@@ -219,7 +221,7 @@ if (typeof window.ethereum !== 'undefined') {
 async function f() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send('eth_requestAccounts', []);
-    const signer = provider.getSigner();
+    signer = provider.getSigner();
     socket.emit('signerAddress', await signer.getAddress());
 
     // const greeterAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3";

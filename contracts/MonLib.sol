@@ -12,6 +12,7 @@ library MonLib {
 
     // a smaller version of mon that only exposes things needed for battle UI
     struct BattleMon {
+        uint monId;
         uint speciesId;
         uint currentHP;
         uint maxHP;

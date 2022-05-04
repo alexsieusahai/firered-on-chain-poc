@@ -206,7 +206,7 @@ contract MonNFT is ERC721URIStorage, Ownable, ServerOwnable {
         console.log("NOTIMPLEMENTEDWARNING: missing wild encounter table calls");
         uint speciesId = 16; // wrong; this should be taken from the wild encounter table
         uint level = 3; // wrong; this should be taken from the wild encounter table
-        uint[4] memory moveset = [uint256(1), 0, 0, 0]; // wrong; this should be taken from the wild encounter table
+        uint[4] memory moveset = [uint256(1), 1, 1, 1]; // wrong; this should be taken from the wild encounter table
         return mintMon(recipient, randomNumber, speciesId, level, moveset);
     }
 

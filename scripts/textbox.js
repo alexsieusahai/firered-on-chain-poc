@@ -13,6 +13,7 @@ export function createTextBox(scene, x, y, config) {
     var radius = GetValue(config, 'radius', 0);
     var fontSize = GetValue(config, 'fontSize', '10px');
     var lineSpacing = GetValue(config, 'lineSpacing', 0);
+    var maxLines = GetValue(config, 'maxLines', 10);
     var textBox = scene.rexUI.add.textBox({
         x: x,
         y: y,
@@ -23,7 +24,8 @@ export function createTextBox(scene, x, y, config) {
                             fixedWidth,
                             fixedHeight,
                             fontSize,
-                            lineSpacing),
+                            lineSpacing,
+                            maxLines),
         space: {
             left: 5, right: 5, top: 5, bottom: 10,
         },
@@ -42,7 +44,8 @@ export function getBBcodeText(scene,
                               fixedWidth,
                               fixedHeight,
                               fontSize,
-                              lineSpacing) {
+                              lineSpacing,
+                              maxLines) {
     return scene.rexUI.add.BBCodeText(0, 0, '', {
         fixedWidth: fixedWidth,
         fixedHeight: fixedHeight,
@@ -53,7 +56,7 @@ export function getBBcodeText(scene,
             mode: 'word',
             width: wrapWidth
         },
-        maxLines: 10
+        maxLines: maxLines
     });
 };
 

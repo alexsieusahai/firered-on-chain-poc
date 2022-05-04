@@ -106,8 +106,15 @@ export class Player extends Consumer {
             this.dialog.textBox = createTextBox(this.parent,
                                            facingTile.pixelX * 2 - 10,
                                            facingTile.pixelY * 2 - 5,
-                                           {wrapWidth: 100, fixedWidth: 100, indent: 8, radius: 8})
+                                                {
+                                                    wrapWidth: 100,
+                                                    fixedWidth: 100,
+                                                    indent: 8,
+                                                    radius: 8,
+                                                    maxLines: 3,
+                                                })
                 .start(facingTile.properties['message'], 5);
+            console.log(this.dialog.textBox);
         }
     }
 

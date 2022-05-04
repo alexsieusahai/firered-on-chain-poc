@@ -38,6 +38,9 @@ contract Battle is Ownable, ServerOwnable {
     MonCoin _monCoin;
     Item _item;
 
+    event Attack(address addr, uint attackerId, uint defenderId, uint slot, bool critical, uint typeDamageMultiplier);
+    event PlayerFlee(address addr);
+
     constructor(MonNFT monNFT,
                 MonManager monManager,
                 Moves moves,
@@ -191,7 +194,7 @@ contract Battle is Ownable, ServerOwnable {
         return (isPhysical ? patk : pspatk) * 100 / (isPhysical ? wdef : wspdef);
     }
 
-    function doAttack(uint attackerId, uint moveSlot, uint defenderId) private {
+    function doAttack(address addr, uint attackerId, uint moveSlot, uint defenderId) private {
         // https://bulbapedia.bulbagarden.net/wiki/Damage
         // keep in mind that all stats are inflated by 100 to prevent rounding errors
         bool isPhysical;
@@ -207,14 +210,18 @@ contract Battle is Ownable, ServerOwnable {
         damage += 20000;
         console.log("NOTIMPLEMENTEDWARNING: block.timestamp randomness");
         damage = damage * (block.timestamp % 38 + 217) / 255; // see random factor ; not *= to avoid rounding errors
-        damage *= (block.timestamp % 16 == 0 ? 2 : 1); // critical hit chance
-        damage *= _monTypes.typeDamageMultiplier(_monNFT.idToSpecies(defenderId), moveType); // extra multiplier of 10;
+        bool critical = block.timestamp % 16 == 0;
+        damage *= (critical ? 2 : 1); // critical hit chance
+        uint typeDamageMultiplier = _monTypes.typeDamageMultiplier(_monNFT.idToSpecies(defenderId), moveType);
+        damage *= typeDamageMultiplier; // extra multiplier of 10;
         damage *= _monTypes.STABMultiplier(_monNFT.idToSpecies(attackerId), moveType); // extra multiplier of 10
         damage /= 10000;
         console.log("damage dealt", damage);
         console.log("hp before attack", _monNFT.idToHP(defenderId));
         _monNFT.deductHP(defenderId, damage);
         console.log("hp remaining", _monNFT.idToHP(defenderId));
+
+        emit Attack(addr, attackerId, defenderId, moveSlot, critical, typeDamageMultiplier);
 
         // handle fainted mon case for exp and ev
         if (_monNFT.idToHP(defenderId) == 0) {
@@ -229,7 +236,8 @@ contract Battle is Ownable, ServerOwnable {
         if (_monNFT.idToHP(playerMonId) > 0)
             {
                 if (playerAction[addr] == ATTACK_ACTION) {
-                    doAttack(playerMonId,
+                    doAttack(addr,
+                             playerMonId,
                              playerSlot[addr],
                              aiMonId);
                 } else if (playerAction[addr] == PARTY_ACTION) {
@@ -240,6 +248,7 @@ contract Battle is Ownable, ServerOwnable {
                     } else {
                         console.log("fleeing...");
                         console.log("NOTIMPLEMENTED: fleeing as forfeit for player-player battles not implemented");
+                        emit PlayerFlee(addr);
                         finishBattle(addr);
                     }
                 }
@@ -255,7 +264,8 @@ contract Battle is Ownable, ServerOwnable {
         if (_monNFT.idToHP(aiMonId) > 0 && opponent[addr] == address(this))
             {
                 if (aiAction[addr] == ATTACK_ACTION) {
-                    doAttack(aiMonId,
+                    doAttack(addr,
+                             aiMonId,
                              aiSlot[addr],
                              _monManager.addressToParty(addr, 0));
                 } else {
