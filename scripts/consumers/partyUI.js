@@ -131,6 +131,10 @@ export class PartyUI extends OptionTextBox {
         this.container.add([altMon]);
     }
 
+    consumeX() {
+        this.destroy();
+    }
+
     consumeZ() {
         // spawn the partyUIOption box, which will handle state transitions and action consumption for partyUI
         // flow should be

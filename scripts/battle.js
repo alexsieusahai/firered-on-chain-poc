@@ -4,21 +4,18 @@ import { Timer } from './timer.js';
 import { createTextBox, getBBcodeText } from './textbox.js';
 import { PartyUI } from './consumers/partyUI.js';
 import { makeMonObject } from './utils.js';
+import { MoveTextBox } from './consumers/moveTextBox.js';
+import { padString } from './utils.js';
 var constants = new Constants();
 
-
-function padString(string, amount, padchar=' ') {
-    return string + padchar.repeat(amount - string.length);
-}
 
 const MON_NAME_LENGTH = 12;
 const MOVE_STRING_LENGTH = 13;
 const MOVESET_BOX_HEIGHT = 80;
 
-function movesetTextbox(scene, mon, moveSelection) {
-    var content = '';
+function changeMoveOptions(scene, mon) {
     var moveset;
-    switch (scene.menuState) {
+    switch (scene.moveTextBox.state) {
     case "FIGHT":
         moveset = mon["moveset"];
         break;
@@ -29,62 +26,25 @@ function movesetTextbox(scene, mon, moveSelection) {
         moveset = ['?', '?', '?', '?'];
         break;
     }
-    for (var i in moveset) {
-        if (i == 2) {
-            content += '\n';
-        }
-        var prefix = (i == moveSelection) ? '*' : ' ';
-        content += padString(prefix + moveset[i], MOVE_STRING_LENGTH);
-        i++;
-    }
-    createTextBox(scene, 5, constants.height - 5, {
-        fixedWidth: constants.width * 2/3 - 20,
-        fixedHeight: MOVESET_BOX_HEIGHT,
-        fontSize: '20px',
-        lineSpacing: 20
-    })
-        .start(content, 0);
+    scene.events.emit('moveTextBoxOptions', moveset);
 }
 
-function currentMoveTextbox(scene, mon, currentMove) {
-    var currentPP = mon['currentPP'][currentMove];
-    var maxPP = mon['maxPP'][currentMove];
-    var typeInt = mon['movesetTypes'][currentMove];
-    var content = '\n';
-    if (scene.menuState === "FIGHT") {
-        content = "PP " + String(currentPP);
-        content += '/' + + String(maxPP) + '\nTYPE:' + getTypeString(typeInt);
-    }
-    createTextBox(scene, constants.width * 2/3, constants.height - 5, {
-        wrapWidth: constants.width * 1/3 - 20,
-        fixedWidth: constants.width * 1/3 - 20,
-        fixedHeight: MOVESET_BOX_HEIGHT,
-        fontSize: '18px',
-        lineSpacing: 15
-    })
-        .start(content, 0);
-}
-
-function playerMonTextbox(scene, mon) {
+function monTextBox(scene, mon, x, y) {
     var content = padString(mon['name'], MON_NAME_LENGTH);
     content += "Lv" + String(mon['level']) + '\n';
     content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
-    createTextBox(scene, constants.width * 2/3 - 20, constants.height - MOVESET_BOX_HEIGHT - 40, {
+    return createTextBox(scene, x, y, {
         wrapWidth: constants.width * 1/3,
         fixedWidth: constants.width * 1/3,
         fixedHeight: 50,
         fontSize: '18px',
         lineSpacing: 8,
-    })
-        .start(content, 0);
+    }).start(content, 0);
+}
 
-    // // draw exp bar
-    console.log('should be drawing exp bar...');
-    // scene.graphics.fillStyle(0x000000, 1);
-    // scene.graphics.fillRoundedRect(100, 100, 100, 100, 8);
+function playerMonTextbox(scene, mon) {
+    monTextBox(scene, mon, constants.width * 2/3 - 20, constants.height - MOVESET_BOX_HEIGHT - 40);
     graphics = scene.add.graphics();
-
-    //  32px radius on the corners
     graphics.fillStyle(0x7E879C, 1);
     var expBarWidth = constants.width * 1/3 - 10;
     graphics.fillRoundedRect(constants.width * 2/3,
@@ -102,18 +62,7 @@ function playerMonTextbox(scene, mon) {
 }
 
 function enemyMonTextbox(scene, mon) {
-    var content = '';
-    content = padString(mon['name'], MON_NAME_LENGTH);
-    content += "Lv" + String(mon['level']) + '\n';
-    content += 'HP: ' + String(mon['currentHP'] / 100) + '/' + String(mon['maxHP'] / 100);
-    createTextBox(scene, 25, 120, {
-        wrapWidth: constants.width * 1/3,
-        fixedWidth: constants.width * 1/3,
-        fixedHeight: 50,
-        fontSize: '18px',
-        lineSpacing: 8,
-    })
-        .start(content, 0);
+    monTextBox(scene, mon, 25, 120);
 }
 
 var timer;
@@ -140,9 +89,10 @@ export class Battle extends Phaser.Scene {
         this.socket = data.socket;
         this.previousSceneKey = data.from;
         this.menuSelection = 0;
-        this.menuState = "ACTION";
         this.loadedImages = false;
         this.partyUI = new PartyUI(this, this.socket);
+        this.moveTextBox = new MoveTextBox(this, ['?', '?', '?', '?'], this.partyUI, this.socket);
+        this.consumers = [this.moveTextBox, this.partyUI];
 
         // grab the data from the backend
         this.socket.on('battleUI', (data) => {
@@ -163,6 +113,7 @@ export class Battle extends Phaser.Scene {
             for (var i = 0; i < this.myParty.length; ++i) {
                 this.myParty[i]['name'] = monNamesParty[i];
             }
+            this.events.emit('currentMon', this.myParty[0]);
             this.enemyParty = data["partyAI"]["mons"].map(makeMonObject);
             var enemyNamesParty = data["partyAI"]["names"];;
             for (var i = 0; i < this.enemyParty.length; ++i) {
@@ -179,9 +130,10 @@ export class Battle extends Phaser.Scene {
                            'background')
                 .setDisplaySize(constants.width, constants.height - MOVESET_BOX_HEIGHT);
 
+
+            // make sure not to draw over partyUI
             if (!this.partyUI.isActive()) {
-                movesetTextbox(this, this.myParty[0], this.menuSelection);
-                currentMoveTextbox(this, this.myParty[0], this.menuSelection);
+                changeMoveOptions(this, this.myParty[0]);
                 playerMonTextbox(this, this.myParty[0]);
                 enemyMonTextbox(this, this.enemyParty[0]);
             }
@@ -210,8 +162,7 @@ export class Battle extends Phaser.Scene {
 
     redrawMoveTextboxes() {
         if (typeof this.myParty !== 'undefined') {
-            movesetTextbox(this, this.myParty[0], this.menuSelection);
-            currentMoveTextbox(this, this.myParty[0], this.menuSelection);
+            changeMoveOptions(this, this.myParty[0]);
         } else {
             console.log("still waiting on data from backend...");
         }
@@ -229,77 +180,20 @@ export class Battle extends Phaser.Scene {
         let keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
         var menuDelta = 0;
-        if (this.partyUI.isActive()) {
-            if (keyS.isDown) {
-                this.partyUI.consumeS();
-            } else if (keyW.isDown) {
-                this.partyUI.consumeW();
-            } else if (keyA.isDown) {
-                this.partyUI.consumeA();
-            } else if (keyD.isDown) {
-                this.partyUI.consumeD();
-            }
-        } else {
-            if (keyS.isDown && timer.timer('movement')) {
-                menuDelta = 2;
-            } else if (keyW.isDown && timer.timer('movement')) {
-                menuDelta = -2;
-            } else if (keyA.isDown && timer.timer('movement')) {
-                menuDelta = -1;
-            } else if (keyD.isDown && timer.timer('movement')) {
-                menuDelta = 1;
-            }
-            if (menuDelta !== 0) {
-                this.menuSelection = (this.menuSelection + menuDelta) % 4;
-                if (this.menuSelection < 0) {
-                    this.menuSelection += 4;
-                }
-                this.redrawMoveTextboxes();
-            }
+        var consumer = undefined;
+        for (var i in this.consumers) {
+            if (this.consumers[i].isActive()) consumer = this.consumers[i];
         }
-        // handle state transitions and sending actions to backend
-        if (keyZ.isDown && timer.timer('movement')) {
-            if (this.menuState === "ACTION") {
-                switch (this.menuSelection) {
-                case 0:
-                    this.menuState = "FIGHT";
-                    break;
-                case 1:
-                    // this.menuState = "BAG";
-                    console.warn("BAG NOT IMPLEMENTED IN UI");
-                    break;
-                case 2:
-                    this.menuState = "MONS";
-                    this.partyUI.construct();
-                    this.partyUI.state = 'BATTLE';
-                    this.events.on('partyUISelected', () => {
-                        console.log('mon selected; ingesting SWAP action on chain...');
-                        this.socket.emit('battleIngestAction', {'action' : 3, 'slot' : this.partyUI.selectedMon});
-                        this.partyUI.destroy();
-                        this.menuState = "ACTION";
-                    }, this);
-                    break;
-                case 3:
-                    this.socket.emit('battleIngestAction', {'action' : 4, 'slot' : this.menuSelection});
-                    break;
-                default:
-                    console.warn("menuState is in an invalid state");
-                    break;
-                }
-            } else if (this.menuState === "FIGHT") {
-                this.socket.emit('battleIngestAction', {'action' : 1, 'slot' : this.menuSelection});
-            } else if (this.menuState === "MONS") {
-                this.partyUI.consumeZ();
-            } else {
-                console.warn("menuState", this.menuState, "NOT IMPLEMENTED IN UI");
-            }
+        if      (keyS.isDown) consumer.consumeS();
+        else if (keyW.isDown) consumer.consumeW();
+        else if (keyA.isDown) consumer.consumeA();
+        else if (keyD.isDown) consumer.consumeD();
+        else if (keyZ.isDown) {
+            consumer.consumeZ();
             this.redrawMoveTextboxes();
         }
-
-        // handle "back to main" state transition
-        if (keyX.isDown && timer.timer('movement')) {
-            console.log("escape pushed; going back to main menu...");
-            this.menuState = "ACTION";
+        else if (keyX.isDown) {
+            consumer.consumeX();
             this.redrawMoveTextboxes();
         }
     }
@@ -317,48 +211,5 @@ export class Battle extends Phaser.Scene {
                             'assets/pokemon/main-sprites/firered-leafgreen/' + String(speciesId) + '.png');
         }
         this.load.start();
-    }
-}
-
-function getTypeString(typeInt) {
-    console.warn("type string should just be a JSON file");
-    switch (typeInt) {
-    case 0:
-        return "NORMAL";
-    case 1:
-        return "FIRE";
-    case 2:
-        return "WATER";
-    case 3:
-        return "GRASS";
-    case 4:
-        return "ELECTRIC";
-    case 5:
-        return "ICE";
-    case 6:
-        return "FIGHTING";
-    case 7:
-        return "POISON";
-    case 8:
-        return "GROUND";
-    case 9:
-        return "FLYING";
-    case 10:
-        return "PSYCHIC";
-    case 11:
-        return "BUG";
-    case 12:
-        return "ROCK";
-    case 13:
-        return "GHOST";
-    case 14:
-        return "DRAGON";
-    case 15:
-        return "DARK";
-    case 16:
-        return "STEEL";
-    default:
-        console.warn("getTypeString has encountered an invalid typeInt");
-        return "?";
     }
 }

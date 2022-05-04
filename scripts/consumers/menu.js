@@ -1,5 +1,4 @@
 import { OptionTextBox } from './optionTextBox.js';
-import { createTextBox, getBBcodeText } from '../textBox.js';
 import { Constants } from '../constants.js';
 let constants = new Constants();
 

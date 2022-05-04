@@ -24,9 +24,13 @@ export class OptionTextBox extends Consumer {
 
         var content = '';
         for (var i in this.options) {
-            content += ((this.current == i ? '*' : ' ')
-                        + this.options[i]
-                        + (i % this.columns ? ' '.repeat(this.columnWidth) : '\n'));
+            i = Number(i);
+            content += (this.current == i ? '*' : ' ') + this.options[i];
+            if (((i + 1) % this.columns) == 0) {
+                content += '\n';
+            } else {
+                content += ' '.repeat(this.columnWidth - this.options[i].length);
+            }
         }
 
         this.textBox = createTextBox(this.parent,
