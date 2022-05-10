@@ -1,15 +1,6 @@
-# Basic Sample Hardhat Project
+A proof-of-concept style (incomplete) Pokemon Firered clone.
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
-
-Try running some of the following tasks:
-
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
-```
+Runs a significant portion of firered internals on the EVM, suitable for a proof-of-stake chain variant such as Polygon or Ronin.
+Uses assets ripped from Firered, and a sample animation atlas.
+Uses ideas from [this](https://medium.com/@michaelwesthadley/modular-game-worlds-in-phaser-3-tilemaps-1-958fc7e6bbd6) to construct parts of the open world.
+Uses Tiled to construct and import maps into Phaser.js.
