@@ -4,3 +4,5 @@ Runs a significant portion of firered internals on the EVM, suitable for a proof
 Uses assets ripped from Firered, and a sample animation atlas.
 Uses ideas from [this](https://medium.com/@michaelwesthadley/modular-game-worlds-in-phaser-3-tilemaps-1-958fc7e6bbd6) to construct parts of the open world.
 Uses Tiled to construct and import maps into Phaser.js.
+All of the smart contracts are implemented using Solidity, and served via Hardhat.
+NONE of these assets are owned by myself.
